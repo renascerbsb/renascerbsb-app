@@ -1,19 +1,12 @@
 @import "bootstrap/scss/bootstrap";
 @import '@fortawesome/fontawesome-free/css/all.min.css';
 
-body {
-  background: #1f2937;
-  color: #f9fafb;
-}
+ body {
+   background: #1f2937;
+   color: #f9fafb;
+ }
 
 .app-input,
-.form-control.app-input,
-.form-select.app-input {
-  background: #111827 !important;
-  color: #f9fafb !important;
-  border: 1px solid #64748b !important;
-}
-
 .app-card,
 .card.app-card {
   background-color: #263241 !important;
@@ -21,23 +14,37 @@ body {
   border: 1px solid #475569 !important;
   border-radius: 12px;
 }
-.app-input,
-.form-control.app-input,
-.form-select.app-input {
-  color: #f9fafb !important;
-  border: 1px solid #4b5563 !important;
-}
-
-.app-input::placeholder {
-  color: #9ca3af;
+.app-input {
+  background: #273244;
+  border: 1px solid #374151;
+  color: #f9fafb;
 }
 
 .app-input:focus {
-  background-color: #0f172a !important;
-  color: #fff !important;
-  border-color: #38bdf8 !important;
-  box-shadow: 0 0 0 0.18rem rgba(56, 189, 248, 0.22) !important;
+  border-color: #FFC94B;
+  box-shadow: 0 0 0 0.15rem rgba(255, 201, 75, 0.25);
 }
+.app-input::placeholder {
+  color: #9ca3af;
+}
+.form-control.app-input,
+
+.form-select.app-input {
+  background: #111827 !important;
+  color: #f9fafb !important;
+  border: 1px solid #64748b !important;
+}
+
+.form-select.app-input:focus {
+  border-color: #ffc94b !important;
+  box-shadow: 0 0 0 0.16rem rgba(255, 201, 75, 0.25) !important;
+}
+
+.form-check-input:checked {
+  background-color: #FFC94B;
+  border-color: #FFC94B;
+}
+
 
 .table-dark {
   --bs-table-bg: #1f2937;
@@ -93,58 +100,90 @@ body {
   background: #2563eb;
   border-color: #2563eb;
 }
+
+.title-line {
+  width: 60px;
+  height: 3px;
+  background: #FFC94B;
+  margin-top: 6px;
+  border-radius: 2px;
+}
+
 .badge-vinculo {
   margin-right: 6px;
   margin-bottom: 4px;
   padding: 6px 10px;
   font-weight: 600;
   border-radius: 999px;
+  font-size: 0.75rem;
+  letter-spacing: 0.3px;
 }
 
 .badge-pastor {
-  background: rgba(168, 85, 247, 0.18);
-  color: #d8b4fe;
-  border: 1px solid rgba(168, 85, 247, 0.4);
+  background: rgba(174, 62, 9, 0.2);
+  color: #ffb089;
+  border: 1px solid #AE3E09;
+  font-size: 0.75rem;
+  letter-spacing: 0.3px;
 }
 
 .badge-lider {
-  background: rgba(34, 197, 94, 0.16);
-  color: #86efac;
-  border: 1px solid rgba(34, 197, 94, 0.4);
+  background: rgba(255, 201, 75, 0.15);
+  color: #FFC94B;
+  border: 1px solid rgba(255, 201, 75, 0.5);
+  font-size: 0.75rem;
+  letter-spacing: 0.3px;
 }
 
 .badge-membro {
   background: rgba(59, 130, 246, 0.16);
   color: #93c5fd;
   border: 1px solid rgba(59, 130, 246, 0.4);
+  font-size: 0.75rem;
+  letter-spacing: 0.3px;
 }
 
 .badge-visitante {
   background: rgba(245, 158, 11, 0.16);
   color: #fcd34d;
   border: 1px solid rgba(245, 158, 11, 0.4);
+  font-size: 0.75rem;
+  letter-spacing: 0.3px;
+}
+
+.btn-primary {
+  background: #AE3E09;
+  border-color: #AE3E09;
+}
+
+.btn-primary:hover {
+  background: #8c2f07;
+  border-color: #8c2f07;
 }
 
 .btn-action {
-  background: #111827;
-  border: 1px solid #475569;
-  color: #f9fafb;
-  margin: 0 3px;
+  background: transparent;
+  border: 1px solid #374151;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-action:hover {
-  background: #2563eb;
-  border-color: #2563eb;
-  color: #fff;
+  background: #AE3E09;
+  border-color: #AE3E09;
 }
 .btn-action i {
   font-size: 0.9rem;
 }
+.btn-outline-light {
+  color: #d8d8d8 !important;
+  border-color: #c68716 !important;
+  background: rgba(198, 135, 22, 0.08);
+}
 
-.btn-action {
-  width: 32px;
-  height: 32px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.btn-outline-light:hover {
+  color: #ffffff !important;
+  background: #c68716 !important;
+  border-color: #c68716 !important;
 }

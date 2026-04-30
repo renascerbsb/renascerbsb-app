@@ -1,19 +1,23 @@
 .navbar {
-  background: #111827 !important;
-  border-bottom: 1px solid #1f2937;
+  background: linear-gradient(90deg, #ffc94b, #c68716, #ae3e09 ) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.22) !important;
 }
 
 .navbar-brand {
-  letter-spacing: 0.5px;
-}
-.nav-link.active {
-  font-weight: 600;
-  color: #fff !important;
-  border-bottom: 2px solid #0d6efd;
+  color: #ffffff !important;
 }
 
-.logo-navbar {
-  height: 32px;
-  width: auto;
-  object-fit: contain;
+.navbar .nav-link {
+  color: rgba(255, 255, 255, 0.82) !important;
+}
+
+.navbar .nav-link.active {
+  color: #ffffff !important;
+  border-bottom: 2px solid #ffffff;
+}
+.navbar::after {
+  content: '';
+  display: block;
+  height: 2px;
+  background: linear-gradient(to right, transparent, #ffc94b, transparent);
 }
