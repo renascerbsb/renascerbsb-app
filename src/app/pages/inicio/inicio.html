@@ -1,0 +1,169 @@
+<section class="container-fluid dashboard-page">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 fw-bold mb-1">Dashboard Renascer</h1>
+      <p class="text-secondary mb-0">Pessoas, visitantes e Kids</p>
+    </div>
+
+    <div class="row g-3 align-items-end">
+        <div class="col-auto">
+            <select class="form-select app-input dashboard-periodo">
+            <option>Luziânia</option>
+            <option>Todas as filiais</option>
+            <option>Paranoá</option>
+            <option>Brasília</option>
+            </select>
+        </div>
+
+        <div class="col-auto">
+            <select class="form-select app-input dashboard-periodo">
+            <option>Este mês</option>
+            <option>Últimos 30 dias</option>
+            <option>Este ano</option>
+            </select>
+        </div>
+        </div>
+    </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="app-card metric">
+        <div class="metric-label">Pessoas cadastradas</div>
+        <div class="metric-value">248</div>
+        <div class="metric-note">+12 este mês</div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="app-card metric">
+        <div class="metric-label">Membros ativos</div>
+        <div class="metric-value">176</div>
+        <div class="metric-note">71% da base</div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="app-card metric">
+        <div class="metric-label">Visitantes do mês</div>
+        <div class="metric-value">19</div>
+        <div class="metric-note">8 aceitaram contato</div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="app-card metric">
+        <div class="metric-label">Crianças no Kids</div>
+        <div class="metric-value">7</div>
+        <div class="metric-note">1 com restrição</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4 mb-4">
+    <div class="col-lg-4">
+      <div class="app-card p-4 h-100">
+        <div class="section-title">Pessoas por Bairro</div>
+        <div class="chart-box">
+          <canvas #bairroChart></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="app-card p-4 h-100">
+        <div class="section-title">Pessoas por Perfil</div>
+        <div class="chart-box">
+          <canvas #perfilChart></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="app-card p-4 h-100">
+        <div class="section-title">Visitantes por Culto</div>
+        <div class="chart-box">
+          <canvas #cultoChart></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-8">
+      <div class="app-card p-4 h-100">
+        <div class="section-title">Evolução de Visitantes</div>
+        <div class="chart-box">
+         <canvas #visitantesMesChart></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="app-card p-4 h-100">
+        <div class="section-title">Pontos de Cuidado</div>
+
+        <div class="list-item">
+          <strong>5 visitantes</strong>
+          <div class="text-secondary">Aceitaram contato e ainda estão pendentes.</div>
+        </div>
+
+        <div class="list-item">
+          <strong>1 criança</strong>
+          <div class="text-secondary">Sem responsável autorizado cadastrado.</div>
+        </div>
+
+        <div class="list-item">
+          <strong>9 cadastros</strong>
+          <div class="text-secondary">Sem telefone informado.</div>
+        </div>
+
+        <div class="list-item">
+          <strong>4 aniversariantes</strong>
+          <div class="text-secondary">Nesta semana.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-card p-4">
+    <div class="section-title">Visitantes Pendentes</div>
+
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover align-middle mb-0 app-table">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Culto</th>
+            <th>Convidado por</th>
+            <th>Telefone</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr>
+            <td>Marina Alves</td>
+            <td>Domingo - 10h</td>
+            <td>Luana</td>
+            <td>(61) 99999-0000</td>
+            <td><span class="badge badge-soft">Aguardando contato</span></td>
+          </tr>
+
+          <tr>
+            <td>João Pedro</td>
+            <td>Domingo - 18h</td>
+            <td>Espontâneo</td>
+            <td>(61) 98888-0000</td>
+            <td><span class="badge badge-soft">Primeiro retorno</span></td>
+          </tr>
+
+          <tr>
+            <td>Renata Lima</td>
+            <td>Quarta - 20h</td>
+            <td>José</td>
+            <td>(61) 97777-0000</td>
+            <td><span class="badge badge-soft">Deseja célula</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>

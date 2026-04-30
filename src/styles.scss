@@ -1,0 +1,150 @@
+@import "bootstrap/scss/bootstrap";
+@import '@fortawesome/fontawesome-free/css/all.min.css';
+
+body {
+  background: #1f2937;
+  color: #f9fafb;
+}
+
+.app-input,
+.form-control.app-input,
+.form-select.app-input {
+  background: #111827 !important;
+  color: #f9fafb !important;
+  border: 1px solid #64748b !important;
+}
+
+.app-card,
+.card.app-card {
+  background-color: #263241 !important;
+  color: #f9fafb !important;
+  border: 1px solid #475569 !important;
+  border-radius: 12px;
+}
+.app-input,
+.form-control.app-input,
+.form-select.app-input {
+  color: #f9fafb !important;
+  border: 1px solid #4b5563 !important;
+}
+
+.app-input::placeholder {
+  color: #9ca3af;
+}
+
+.app-input:focus {
+  background-color: #0f172a !important;
+  color: #fff !important;
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 0 0.18rem rgba(56, 189, 248, 0.22) !important;
+}
+
+.table-dark {
+  --bs-table-bg: #1f2937;
+  --bs-table-border-color: #374151;
+}
+
+.app-table {
+  --bs-table-bg: #1f2937;
+  --bs-table-color: #f9fafb;
+  --bs-table-border-color: #374151;
+  --bs-table-hover-bg: #273244;
+  --bs-table-hover-color: #ffffff;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.app-table tbody td:first-child {
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.app-table thead th {
+  background: linear-gradient(180deg, #0f172a, #111827) !important;
+  color: #e5e7eb !important;
+  font-weight: 600;
+  border-bottom: 2px solid #475569 !important;
+  box-shadow: inset 0 -1px 0 #475569;
+}
+
+.app-table tbody tr td {
+  transition: background-color 0.15s ease;
+}
+
+.app-table tbody tr:nth-child(odd) td {
+  background-color: #1f2937 !important;
+}
+
+.app-table tbody tr:nth-child(even) td {
+  background-color: #2a3647 !important; // um pouco mais claro
+}
+
+.app-table tbody tr:hover td {
+  background-color: #334155 !important;
+}
+
+.app-pagination .page-link {
+  background: #1f2937;
+  color: #f9fafb;
+  border-color: #374151;
+}
+
+.app-pagination .page-item.active .page-link {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+.badge-vinculo {
+  margin-right: 6px;
+  margin-bottom: 4px;
+  padding: 6px 10px;
+  font-weight: 600;
+  border-radius: 999px;
+}
+
+.badge-pastor {
+  background: rgba(168, 85, 247, 0.18);
+  color: #d8b4fe;
+  border: 1px solid rgba(168, 85, 247, 0.4);
+}
+
+.badge-lider {
+  background: rgba(34, 197, 94, 0.16);
+  color: #86efac;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.badge-membro {
+  background: rgba(59, 130, 246, 0.16);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+}
+
+.badge-visitante {
+  background: rgba(245, 158, 11, 0.16);
+  color: #fcd34d;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.btn-action {
+  background: #111827;
+  border: 1px solid #475569;
+  color: #f9fafb;
+  margin: 0 3px;
+}
+
+.btn-action:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+.btn-action i {
+  font-size: 0.9rem;
+}
+
+.btn-action {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
