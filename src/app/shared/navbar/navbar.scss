@@ -1,5 +1,5 @@
 .navbar {
-  background: linear-gradient(90deg, #ffc94b, #c68716, #ae3e09 ) !important;
+  background: linear-gradient(90deg, #c68716, #ae3e09 ) !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.22) !important;
 }
 
@@ -20,4 +20,17 @@
   display: block;
   height: 2px;
   background: linear-gradient(to right, transparent, #ffc94b, transparent);
+}
+.btn-theme-toggle {
+  border: 1px solid rgba(255,255,255,0.3);
+  color: #fff;
+  background: transparent;
+  border-radius: 50px;
+  padding: 6px 10px;
+  transition: all 0.2s ease;
+}
+
+.btn-theme-toggle:hover {
+  background: rgba(255,255,255,0.15);
+  transform: scale(1.05);
 }

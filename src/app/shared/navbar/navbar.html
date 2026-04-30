@@ -8,7 +8,18 @@
       <a class="nav-link" routerLink="/inicio" routerLinkActive="active">Início</a>
       <a class="nav-link" routerLink="/visitantes" routerLinkActive="active">Visitantes</a>
       <a class="nav-link" routerLink="/pessoas" routerLinkActive="active">Pessoas</a>
-      <a class="nav-link" routerLink="/kids" routerLinkActive="active">Kids</a>
+      <!-- <a class="nav-link" routerLink="/kids" routerLinkActive="active">Kids</a> -->
+    </div>
+    <div>
+      <button 
+        class="btn btn-sm btn-theme-toggle ms-3"
+        (click)="toggleTheme()"
+      >
+       <i class="fas"
+        [class.fa-sun]="isLight"
+        [class.fa-moon]="!isLight">
+      </i>
+      </button>
     </div>
   </div>
 </nav>

@@ -96,9 +96,9 @@
         <tr>
           <th>Nome</th>
           <th>Vínculo</th>
-          <th>Atribuições</th>
-          <th>Bairro</th>
-          <th>Filial</th>
+          <th>Ministérios/Serviços</th>
+          <th>Bairro de Residência</th>
+          <th>Congregação</th>
           <th class="text-center">Ações</th>
         </tr>
       </thead>
@@ -113,14 +113,19 @@
         </td>
         <td>Santa Maria - DF</td>
         <td>Brasília</td>
-        <td class="text-center">
-          <a class="btn btn-sm btn-action" routerLink="/pessoas/1/editar" title="Editar">
+       <td class="text-center">
+        <div class="d-flex justify-content-center gap-2">
+          <a class="btn btn-sm btn-action btn-action-text" routerLink="/pessoas/1/editar" title="Alterar">
             <i class="fa-solid fa-pen"></i>
+            <span>Alterar</span>
           </a>
-          <button class="btn btn-sm btn-action" title="Detalhar">
+
+          <button class="btn btn-sm btn-action btn-action-text" title="Detalhar">
             <i class="fa-solid fa-magnifying-glass"></i>
+            <span>Detalhar</span>
           </button>
-        </td>
+        </div>
+      </td>
       </tr>
 
       <tr>
@@ -131,10 +136,17 @@
         </td>
         <td>Paranoá - DF</td>
         <td>Paranoá</td>
-        <td class="text-center">
-          <button class="btn btn-sm btn-action" title="Editar">✏️</button>
-          <button class="btn btn-sm btn-action" title="Detalhar">🔍</button>
-        </td>
+          <div class="d-flex justify-content-center gap-2">
+          <a class="btn btn-sm btn-action btn-action-text" routerLink="/pessoas/1/editar" title="Alterar">
+            <i class="fa-solid fa-pen"></i>
+            <span>Alterar</span>
+          </a>
+
+          <button class="btn btn-sm btn-action btn-action-text" title="Detalhar">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <span>Detalhar</span>
+          </button>
+        </div>
       </tr>
 
       <tr>
@@ -145,10 +157,17 @@
         </td>
         <td>Luziânia - GO</td>
         <td>Luziânia</td>
-        <td class="text-center">
-          <button class="btn btn-sm btn-action" title="Editar">✏️</button>
-          <button class="btn btn-sm btn-action" title="Detalhar">🔍</button>
-        </td>
+          <div class="d-flex justify-content-center gap-2">
+          <a class="btn btn-sm btn-action btn-action-text" routerLink="/pessoas/1/editar" title="Alterar">
+            <i class="fa-solid fa-pen"></i>
+            <span>Alterar</span>
+          </a>
+
+          <button class="btn btn-sm btn-action btn-action-text" title="Detalhar">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <span>Detalhar</span>
+          </button>
+        </div>
       </tr>
     </tbody>
     </table>
