@@ -104,72 +104,75 @@
       </thead>
 
      <tbody>
-      <tr>
-        <td>Vaevo Basuan</td>
-        <td>Pastor</td>
-        <td>
-          <span class="badge badge-vinculo badge-pastor">Adote</span>
-          <span class="badge badge-vinculo badge-lider">Líder de célula</span>
-        </td>
-        <td>Santa Maria - DF</td>
-        <td>Brasília</td>
-       <td class="text-center">
-        <div class="d-flex justify-content-center gap-2">
-          <a class="btn btn-sm btn-action btn-action-text" routerLink="/pessoas/1/editar" title="Alterar">
-            <i class="fa-solid fa-pen"></i>
-            <span>Alterar</span>
-          </a>
+        @for (pessoa of pessoas; track pessoa.seq_pessoa) {
 
-          <button class="btn btn-sm btn-action btn-action-text" title="Detalhar">
-            <i class="fa-solid fa-magnifying-glass"></i>
-            <span>Detalhar</span>
-          </button>
-        </div>
-      </td>
-      </tr>
+          <tr>
 
-      <tr>
-        <td>Tiarosi Subie</td>
-        <td>Membro</td>
-        <td>
-          <span class="badge badge-vinculo badge-membro">Kids</span>
-        </td>
-        <td>Paranoá - DF</td>
-        <td>Paranoá</td>
-          <div class="d-flex justify-content-center gap-2">
-          <a class="btn btn-sm btn-action btn-action-text" routerLink="/pessoas/1/editar" title="Alterar">
-            <i class="fa-solid fa-pen"></i>
-            <span>Alterar</span>
-          </a>
+            <td>{{ pessoa.ds_nome }}</td>
 
-          <button class="btn btn-sm btn-action btn-action-text" title="Detalhar">
-            <i class="fa-solid fa-magnifying-glass"></i>
-            <span>Detalhar</span>
-          </button>
-        </div>
-      </tr>
+            <td>
+              {{ pessoa.vinculo?.ds_nome || '-' }}
+            </td>
 
-      <tr>
-        <td>Xuxua Naten</td>
-        <td>Visitante</td>
-        <td>
-          <span class="badge badge-vinculo badge-visitante">Comunicação</span>
-        </td>
-        <td>Luziânia - GO</td>
-        <td>Luziânia</td>
-          <div class="d-flex justify-content-center gap-2">
-          <a class="btn btn-sm btn-action btn-action-text" routerLink="/pessoas/1/editar" title="Alterar">
-            <i class="fa-solid fa-pen"></i>
-            <span>Alterar</span>
-          </a>
+            <td>
 
-          <button class="btn btn-sm btn-action btn-action-text" title="Detalhar">
-            <i class="fa-solid fa-magnifying-glass"></i>
-            <span>Detalhar</span>
-          </button>
-        </div>
-      </tr>
-    </tbody>
+              @if (pessoa.ministerios?.length) {
+
+                @for (ministerio of pessoa.ministerios; track ministerio.seq_ministerio) {
+
+                  <span class="badge badge-vinculo badge-membro">
+                    {{ ministerio.ds_nome }}
+                  </span>
+
+                }
+
+              } @else {
+
+                <span>-</span>
+
+              }
+
+            </td>
+
+            <td>
+              {{ pessoa.cidade?.ds_nome || '-' }}
+              {{ pessoa.cidade?.uf ? ' - ' + pessoa.cidade?.uf : '' }}
+            </td>
+
+            <td>
+              {{ pessoa.filial?.ds_nome || '-' }}
+            </td>
+
+            <td class="text-center">
+
+              <div class="d-flex justify-content-center gap-2">
+
+                <a
+                  class="btn btn-sm btn-action btn-action-text"
+                  [routerLink]="['/pessoas', pessoa.seq_pessoa, 'editar']"
+                  title="Alterar"
+                >
+                  <i class="fa-solid fa-pen"></i>
+                  <span>Alterar</span>
+                </a>
+
+                <button
+                  class="btn btn-sm btn-action btn-action-text"
+                  title="Detalhar"
+                >
+                  <i class="fa-solid fa-magnifying-glass"></i>
+                  <span>Detalhar</span>
+                </button>
+
+              </div>
+
+            </td>
+
+          </tr>
+
+        }
+
+      </tbody>
     </table>
   </div>
 

@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { Navbar } from './shared/navbar/navbar';
+import { provideHttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-root',
@@ -9,3 +10,9 @@ import { Navbar } from './shared/navbar/navbar';
   styleUrl: './app.scss'
 })
 export class App {}
+
+export const appConfig = {
+  providers: [
+    provideHttpClient()
+  ]
+};
