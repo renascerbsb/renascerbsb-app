@@ -12,78 +12,115 @@
 
   <div class="card app-card mb-4">
     <div class="card-body">
-      <form>
+      <form (ngSubmit)="pesquisar()">
         <div class="row g-3 align-items-end">
-          <div class="col-12 col-lg-6">
+          <div class="col-12 col-md-6 col-lg-2">
+            <label class="form-label">Codigo:</label>
+            <input type="number" class="form-control app-input" name="seqPessoa" [(ngModel)]="filtro.seqPessoa" />
+          </div>
+
+          <div class="col-12 col-md-6 col-lg-4">
             <label class="form-label">Nome:</label>
-            <input type="text" class="form-control app-input" />
+            <input type="text" class="form-control app-input" name="dsNome" [(ngModel)]="filtro.dsNome" />
           </div>
 
           <div class="col-12 col-md-6 col-lg-3">
-            <label class="form-label">Faixa Etária</label>
-            <select class="form-select app-input">
-              <option>00 ~ 12 anos</option>
-              <option>13 ~ 17 anos</option>
-              <option>18 ~ 30 anos</option>
-              <option>31 ~ 60 anos</option>
-              <option>Acima de 60 anos</option>
+            <label class="form-label">Telefone:</label>
+            <input type="text" class="form-control app-input" name="nrTelefone" [(ngModel)]="filtro.nrTelefone" />
+          </div>
+
+          <div class="col-12 col-md-6 col-lg-3">
+            <label class="form-label">Nascimento:</label>
+            <input type="date" class="form-control app-input" name="dtNascimento" [(ngModel)]="filtro.dtNascimento" />
+          </div>
+
+          <div class="col-12 col-md-6 col-lg-3">
+            <label class="form-label">Faixa Etaria:</label>
+            <select class="form-select app-input" name="seqFaixaEtaria" [(ngModel)]="filtro.seqFaixaEtaria">
+              <option value="">Todas as faixas</option>
+
+              @for (faixa of faixasEtarias; track faixa.seq_faixa_etaria) {
+                <option [value]="faixa.seq_faixa_etaria">
+                  {{ faixa.ds_nome }}
+                </option>
+              }
             </select>
           </div>
 
           <div class="col-12 col-md-6 col-lg-3">
-            <label class="form-label">Aniversariantes</label>
-            <select class="form-select app-input">
-              <option>Fevereiro</option>
-              <option>Janeiro</option>
-              <option>Março</option>
-              <option>Abril</option>
-              <option>Maio</option>
+            <label class="form-label">Vinculo:</label>
+            <select class="form-select app-input" name="seqVinculo" [(ngModel)]="filtro.seqVinculo">
+              <option value="">Todos os vinculos</option>
+
+              @for (vinculo of vinculos; track vinculo.seq_vinculo) {
+                <option [value]="vinculo.seq_vinculo">
+                  {{ vinculo.ds_nome }}
+                </option>
+              }
             </select>
           </div>
 
           <div class="col-12 col-md-6 col-lg-3">
             <label class="form-label">Filial:</label>
-            <select class="form-select app-input">
-              <option>Paranoá</option>
-              <option>Brasília</option>
-              <option>Luziânia</option>
+            <select class="form-select app-input" name="seqFilial" [(ngModel)]="filtro.seqFilial">
+              <option value="">Todas as congregacoes</option>
+
+              @for (filial of filiais; track filial.seq_filial) {
+                <option [value]="filial.seq_filial">
+                  {{ filial.ds_nome }}
+                </option>
+              }
             </select>
           </div>
 
           <div class="col-12 col-md-6 col-lg-3">
-            <label class="form-label">Bairro de residência:</label>
-            <select class="form-select app-input">
-              <option>Gama</option>
-              <option>Paranoá - DF</option>
-              <option>Santa Maria - DF</option>
-              <option>Luziânia - GO</option>
+            <label class="form-label">Bairro de residencia:</label>
+            <select class="form-select app-input" name="seqCidade" [(ngModel)]="filtro.seqCidade">
+              <option value="">Todas as cidades</option>
+
+              @for (cidade of cidades; track cidade.seq_cidade) {
+                <option [value]="cidade.seq_cidade">
+                  {{ cidade.ds_nome }}
+                </option>
+              }
             </select>
           </div>
 
-          <div class="col-12 col-lg-3">
-            <label class="form-label d-block">Sexo:</label>
+          <div class="col-12 col-md-6 col-lg-3">
+            <label class="form-label">Lider:</label>
+            <select class="form-select app-input" name="seqLider" [(ngModel)]="filtro.seqLider">
+              <option value="">Todos os lideres</option>
 
-            <div class="d-flex gap-3 flex-wrap">
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="sexo" id="homens" />
-                <label class="form-check-label" for="homens">Homens</label>
-              </div>
-
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="sexo" id="mulheres" />
-                <label class="form-check-label" for="mulheres">Mulheres</label>
-              </div>
-
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="sexo" id="ambos" checked />
-                <label class="form-check-label" for="ambos">Ambos</label>
-              </div>
-            </div>
+              @for (lider of lideres; track lider.seq_pessoa) {
+                <option [value]="lider.seq_pessoa">
+                  {{ lider.ds_nome }}
+                </option>
+              }
+            </select>
           </div>
 
-          <div class="col-12 col-lg-3 d-flex justify-content-lg-end gap-2">
-            <button type="button" class="btn btn-outline-light px-4">Limpar</button>
-            <button type="button" class="btn btn-primary px-4">Pesquisar</button>
+          <div class="col-12 col-md-6 col-lg-3">
+            <label class="form-label">Situacao:</label>
+            <select class="form-select app-input" name="stAtivo" [(ngModel)]="filtro.stAtivo">
+              <option value="true">Ativos</option>
+              <option value="false">Inativos</option>
+            </select>
+          </div>
+
+          <div class="col-12 col-lg-6">
+            <label class="form-label">Ministerios/Servicos:</label>
+            <select class="form-select app-input" multiple name="seqMinisterios" [(ngModel)]="filtro.seqMinisterios">
+              @for (ministerio of ministerios; track ministerio.seq_ministerio) {
+                <option [value]="ministerio.seq_ministerio">
+                  {{ ministerio.ds_nome }}
+                </option>
+              }
+            </select>
+          </div>
+
+          <div class="col-12 col-lg-6 d-flex justify-content-lg-end gap-2">
+            <button type="button" class="btn btn-outline-light px-4" (click)="limparFiltros()">Limpar</button>
+            <button type="submit" class="btn btn-primary px-4">Pesquisar</button>
           </div>
         </div>
       </form>
@@ -95,19 +132,17 @@
       <thead>
         <tr>
           <th>Nome</th>
-          <th>Vínculo</th>
-          <th>Ministérios/Serviços</th>
-          <th>Bairro de Residência</th>
-          <th>Congregação</th>
-          <th class="text-center">Ações</th>
+          <th>Vinculo</th>
+          <th>Ministerios/Servicos</th>
+          <th>Bairro de Residencia</th>
+          <th>Congregacao</th>
+          <th class="text-center">Acoes</th>
         </tr>
       </thead>
 
-     <tbody>
+      <tbody>
         @for (pessoa of pessoas; track pessoa.seq_pessoa) {
-
           <tr>
-
             <td>{{ pessoa.ds_nome }}</td>
 
             <td>
@@ -115,23 +150,15 @@
             </td>
 
             <td>
-
               @if (pessoa.ministerios?.length) {
-
                 @for (ministerio of pessoa.ministerios; track ministerio.seq_ministerio) {
-
                   <span class="badge badge-vinculo badge-membro">
                     {{ ministerio.ds_nome }}
                   </span>
-
                 }
-
               } @else {
-
                 <span>-</span>
-
               }
-
             </td>
 
             <td>
@@ -144,9 +171,7 @@
             </td>
 
             <td class="text-center">
-
               <div class="d-flex justify-content-center gap-2">
-
                 <a
                   class="btn btn-sm btn-action btn-action-text"
                   [routerLink]="['/pessoas', pessoa.seq_pessoa, 'editar']"
@@ -163,15 +188,10 @@
                   <i class="fa-solid fa-magnifying-glass"></i>
                   <span>Detalhar</span>
                 </button>
-
               </div>
-
             </td>
-
           </tr>
-
         }
-
       </tbody>
     </table>
   </div>
@@ -191,7 +211,7 @@
         <a class="page-link" href="#">3</a>
       </li>
       <li class="page-item">
-        <a class="page-link" href="#">Próximo</a>
+        <a class="page-link" href="#">Proximo</a>
       </li>
     </ul>
   </nav>
