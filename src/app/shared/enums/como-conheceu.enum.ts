@@ -1,0 +1,9 @@
+export enum ComoConheceu {
+  CONVIDADO_MEMBRO = 1,
+  CONVIDADO_EXTERNO = 2,
+  WHATSAPP = 3,
+  INSTAGRAM = 4,
+  GOOGLE_MAPS = 5,
+  CANAL_TV = 6,
+  OUTROS = 7
+}

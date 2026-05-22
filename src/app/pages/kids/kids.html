@@ -1,1 +1,37 @@
-<p>kids works!</p>
+<section class="app-page kids-page">
+  <header class="page-header">
+    <div>
+      <h1 class="page-title">Kids</h1>
+      <p class="page-subtitle">Acompanhamento das criancas e responsaveis.</p>
+    </div>
+
+    <p-button label="Cadastrar crianca" icon="pi pi-plus" />
+  </header>
+
+  <p-card>
+    <p-table [value]="criancas" responsiveLayout="scroll" styleClass="p-datatable-sm">
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Nome</th>
+          <th>Responsavel</th>
+          <th>Idade</th>
+          <th>Status</th>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="body" let-crianca>
+        <tr>
+          <td>{{ crianca.nome }}</td>
+          <td>{{ crianca.responsavel }}</td>
+          <td>{{ crianca.idade }} anos</td>
+          <td>
+            <p-tag
+              [value]="crianca.status"
+              [severity]="crianca.status === 'Autorizada' ? 'success' : 'warn'"
+            />
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </p-card>
+</section>

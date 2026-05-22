@@ -1,0 +1,66 @@
+<section class="app-page app-page-narrow evento-form-page">
+  <header class="page-header">
+    <div>
+      <h1 class="page-title">{{ modoEdicao ? 'Editar evento' : 'Novo evento' }}</h1>
+      <p class="page-subtitle">Cadastre as informacoes basicas do evento.</p>
+    </div>
+
+    <p-button label="Voltar" icon="pi pi-arrow-left" severity="secondary" [outlined]="true" routerLink="/eventos" />
+  </header>
+
+  <p-card>
+    <form [formGroup]="form" (ngSubmit)="salvar()" class="form-grid">
+      <div class="field col-span-12">
+        <label for="ds_nome">Nome do evento</label>
+        <input id="ds_nome" pInputText formControlName="ds_nome" />
+
+        @if (form.get('ds_nome')?.invalid && form.get('ds_nome')?.touched) {
+          <small class="p-error">Nome do evento e obrigatorio.</small>
+        }
+      </div>
+
+      <div class="field col-span-12">
+        <label for="ds_descricao">Descricao</label>
+        <textarea id="ds_descricao" pTextarea rows="5" formControlName="ds_descricao"></textarea>
+      </div>
+
+      <div class="switch-field col-span-6">
+        <div>
+          <label for="st_evento_fixo">Evento fixo</label>
+          <p class="muted">Use para eventos recorrentes na agenda.</p>
+        </div>
+
+        <p-toggleswitch inputId="st_evento_fixo" formControlName="st_evento_fixo" />
+      </div>
+
+      <div class="field col-span-6">
+        <label for="ds_recorrencia">Recorrencia</label>
+        <p-select
+          inputId="ds_recorrencia"
+          [options]="recorrencias"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Selecione"
+          [showClear]="true"
+          formControlName="ds_recorrencia"
+        />
+      </div>
+
+      @if (modoEdicao) {
+        <div class="switch-field col-span-12">
+          <div>
+            <label for="st_ativo">Ativo</label>
+            <p class="muted">Controle se o evento aparece nas consultas.</p>
+          </div>
+
+          <p-toggleswitch inputId="st_ativo" formControlName="st_ativo" />
+        </div>
+      }
+
+      <div class="actions-row col-span-12">
+        <p-button label="Cancelar" icon="pi pi-times" severity="secondary" [outlined]="true" routerLink="/eventos" />
+        <p-button type="submit" [label]="modoEdicao ? 'Atualizar' : 'Salvar'" icon="pi pi-check" />
+      </div>
+    </form>
+  </p-card>
+</section>

@@ -1,94 +1,150 @@
-<section class="container-fluid visitantes-page">
-
-  <div class="d-flex justify-content-between align-items-center mb-3">
+<section class="app-page app-page-narrow visitantes-page">
+  <header class="page-header">
     <div>
-      <h1 class="h3 mb-1">Cadastro Rápido de Visitante</h1>
-      <div class="title-line"></div>
-      <p class="text-secondary mb-0">Registro simples para visitantes do culto.</p>
+      <h1 class="page-title">Cadastro rapido de visitante</h1>
+      <p class="page-subtitle">Registro simples para visitantes do culto.</p>
     </div>
+  </header>
 
-  
-  </div>
+  <p-card>
+    <form [formGroup]="form" class="form-grid" (ngSubmit)="salvar()">
+      <div class="field col-span-5">
+        <label for="ds_nome">Nome</label>
+        <input id="ds_nome" pInputText [invalid]="campoInvalido('ds_nome')" type="text" formControlName="ds_nome" />
 
-  <div class="card app-card text-light border-secondary visitor-card">
-    <div class="card-body p-4">
-      <form>
-        <div class="row g-4">
-          <div class="col-12 col-lg-5">
-            <label class="form-label">Nome:</label>
-            <input type="text" class="form-control app-input text-light border-secondary" />
-          </div>
+        @if (campoInvalido('ds_nome')) {
+          <p-message severity="error" size="small" variant="simple" text="Nome e obrigatorio." />
+        }
+      </div>
 
-          <div class="col-12 col-md-6 col-lg-3">
-            <label class="form-label">Filial:</label>
-            <select class="form-select app-input text-light border-secondary">
-              <option>Paranoá</option>
-              <option>Asa Norte</option>
-              <option>Ceilândia</option>
-            </select>
-          </div>
+      <div class="field col-span-3">
+        <label for="seq_filial">Congregacao</label>
+        <p-select
+          inputId="seq_filial"
+          [options]="filiais"
+          optionLabel="ds_nome"
+          optionValue="seq_filial"
+          placeholder="Selecione"
+          [invalid]="campoInvalido('seq_filial')"
+          formControlName="seq_filial"
+        />
 
-          <div class="col-12 col-md-6 col-lg-4">
-            <label class="form-label">Bairro de residência:</label>
-            <select class="form-select app-input text-light border-secondary">
-              <option>Gama</option>
-              <option>Paranoá</option>
-              <option>Taguatinga</option>
-              <option>Samambaia</option>
-            </select>
-          </div>
+        @if (campoInvalido('seq_filial')) {
+          <p-message severity="error" size="small" variant="simple" text="Congregacao e obrigatoria." />
+        }
+      </div>
 
-          <div class="col-12 col-lg-5">
-            <label class="form-label">Quem convidou?</label>
-            <select class="form-select app-input text-light border-secondary">
-              <option selected disabled>Selecione...</option>
-              <option>João</option>
-              <option>Maria</option>
-            </select>
-          </div>
+      <div class="field col-span-4">
+        <label for="seq_cidade">Bairro de residencia</label>
+        <p-select
+          inputId="seq_cidade"
+          [options]="bairros"
+          optionLabel="ds_nome"
+          optionValue="seq_cidade"
+          placeholder="Selecione"
+          [filter]="true"
+          [invalid]="campoInvalido('seq_cidade')"
+          formControlName="seq_cidade"
+        />
 
-          <div class="col-12 col-lg-7">
-            <label class="form-label">Culto visitado:</label>
-            <select class="form-select app-input text-light border-secondary">
-              <option>Domingo - 10h</option>
-              <option>Domingo - 19h</option>
-              <option>Quarta - 20h</option>
-            </select>
-          </div>
+        @if (campoInvalido('seq_cidade')) {
+          <p-message severity="error" size="small" variant="simple" text="Bairro de residencia e obrigatorio." />
+        }
+      </div>
 
-          <div class="col-12 col-lg-5">
-            <label class="form-label d-block">Aceita contato?</label>
+      <div class="field col-span-5">
+        <label for="ds_como_conheceu">Como conheceu?</label>
+        <p-select
+          inputId="ds_como_conheceu"
+          [options]="formasConhecimento"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Selecione"
+          [invalid]="campoInvalido('ds_como_conheceu')"
+          formControlName="ds_como_conheceu"
+        />
 
-            <div class="d-flex gap-4">
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="aceitaContato" id="contatoSim" />
-                <label class="form-check-label" for="contatoSim">Sim</label>
-              </div>
+        @if (campoInvalido('ds_como_conheceu')) {
+          <p-message severity="error" size="small" variant="simple" text="Como conheceu e obrigatorio." />
+        }
+      </div>
 
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="aceitaContato" id="contatoNao" />
-                <label class="form-check-label" for="contatoNao">Não</label>
-              </div>
-            </div>
-          </div>
+      <div class="field col-span-3">
+        <label>Genero</label>
+        <div class="radio-row">
+          <label>
+            <p-radiobutton name="tp_genero" value="F" formControlName="tp_genero" inputId="generoVisitanteF" />
+            <span>Feminino</span>
+          </label>
 
-          <div class="col-12 col-lg-7">
-            <label class="form-label">Telefone:</label>
-            <input type="tel" class="form-control app-input text-light border-secondary" />
-          </div>
-
-          <div class="col-12">
-            <label class="form-label">Outras observações:</label>
-            <textarea class="form-control app-input text-light border-secondary" rows="6"></textarea>
-          </div>
-
-          <div class="col-12 d-flex justify-content-end">
-            <button type="button" class="btn btn-primary px-5">
-              Salvar
-            </button>
-          </div>
+          <label>
+            <p-radiobutton name="tp_genero" value="M" formControlName="tp_genero" inputId="generoVisitanteM" />
+            <span>Masculino</span>
+          </label>
         </div>
-      </form>
-    </div>
-  </div>
+      </div>
+
+      <div class="field col-span-4">
+        <label for="seq_evento_frequentou">Evento frequentado</label>
+        <p-select
+          inputId="seq_evento_frequentou"
+          [options]="eventos"
+          optionLabel="ds_nome"
+          optionValue="seq_evento"
+          placeholder="Selecione"
+          [showClear]="true"
+          formControlName="seq_evento_frequentou"
+        />
+      </div>
+
+      <div class="field col-span-5">
+        <label for="ds_nome_convidou">Quem convidou?</label>
+        <input id="ds_nome_convidou" pInputText type="text" formControlName="ds_nome_convidou" />
+      </div>
+
+      <div class="field col-span-3">
+        <label>Frequenta igreja?</label>
+        <div class="radio-row">
+          <label>
+            <p-radiobutton name="st_frequenta_igreja" [value]="true" formControlName="st_frequenta_igreja" inputId="frequentaSim" />
+            <span>Sim</span>
+          </label>
+
+          <label>
+            <p-radiobutton name="st_frequenta_igreja" [value]="false" formControlName="st_frequenta_igreja" inputId="frequentaNao" />
+            <span>Nao</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="field col-span-3">
+        <label>Aceita contato?</label>
+        <div class="radio-row">
+          <label>
+            <p-radiobutton name="aceita_contato" [value]="true" formControlName="aceita_contato" inputId="contatoSim" />
+            <span>Sim</span>
+          </label>
+
+          <label>
+            <p-radiobutton name="aceita_contato" [value]="false" formControlName="aceita_contato" inputId="contatoNao" />
+            <span>Nao</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="field col-span-4">
+        <label for="nr_telefone">Telefone</label>
+        <input id="nr_telefone" pInputText appTelefoneMask type="tel" formControlName="nr_telefone" />
+      </div>
+
+      <div class="field col-span-12">
+        <label for="ds_observacao">Outras observacoes</label>
+        <textarea id="ds_observacao" pTextarea rows="6" formControlName="ds_observacao"></textarea>
+      </div>
+
+      <div class="actions-row col-span-12">
+        <p-button type="submit" label="Salvar" icon="pi pi-check" />
+      </div>
+    </form>
+  </p-card>
 </section>

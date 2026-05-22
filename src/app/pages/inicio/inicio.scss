@@ -1,3 +1,47 @@
+.dashboard-filters {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.dashboard-filters p-select {
+  width: 180px;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.metric-label {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.metric-value {
+  margin-top: 0.35rem;
+  font-size: 2rem;
+  font-weight: 800;
+}
+
+.metric-note {
+  margin-top: 0.35rem;
+  color: var(--brand-primary);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.wide-card {
+  grid-column: span 2;
+}
+
 .chart-box {
   height: 280px;
   min-height: 280px;
@@ -9,115 +53,48 @@
   height: 100% !important;
 }
 
-.dashboard-page {
-  max-width: 1280px;
+.list-item,
+.birthday-item,
+.event-item {
+  border-bottom: 1px solid var(--surface-border);
+  padding: 0.8rem 0;
 }
 
-.dashboard-periodo {
-  width: 180px;
+.list-item:last-child,
+.birthday-item:last-child,
+.event-item:last-child {
+  border-bottom: 0;
 }
 
-.metric {
-  padding: 22px;
-}
-
-.metric-label {
-  color: #cbd5e1;
-  font-size: 0.9rem;
-}
-
-.metric-value {
-  font-size: 2rem;
-  font-weight: 800;
-  margin-top: 6px;
-}
-
-.metric-note {
-  color: #38bdf8;
-  font-size: 0.85rem;
-  margin-top: 6px;
-}
-
-.section-title {
-  font-size: 1.15rem;
-  font-weight: 700;
-  margin-bottom: 18px;
-}
-
-.chart-box {
-  height: 280px;
-  position: relative;
-}
-
-.list-item {
-  border-bottom: 1px solid #475569;
-  padding: 12px 0;
-}
-
-.list-item:last-child {
-  border-bottom: none;
-}
-
-.badge-soft {
-  background: rgba(56, 189, 248, 0.14);
-  color: #7dd3fc;
-  border: 1px solid rgba(56, 189, 248, 0.35);
-}
-
-.birthday-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.birthday-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border-soft);
-}
-
-.birthday-item:last-child {
-  border-bottom: none;
-}
-
-.birthday-age {
-  background: rgba(255, 201, 75, 0.15);
-  color: var(--brand-yellow);
-  border: 1px solid rgba(255, 201, 75, 0.45);
-  white-space: nowrap;
-}
+.birthday-list,
 .event-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
 }
 
+.birthday-item,
 .event-item {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border-soft);
+  justify-content: space-between;
+  gap: 1rem;
 }
 
-.event-item:last-child {
-  border-bottom: none;
+.event-item {
+  justify-content: flex-start;
 }
 
 .event-date {
   width: 54px;
   height: 54px;
-  border-radius: 14px;
-  background: rgba(255, 201, 75, 0.12);
-  border: 1px solid rgba(255, 201, 75, 0.45);
-  color: var(--brand-yellow);
+  border-radius: 12px;
+  background: var(--brand-primary-soft);
+  color: var(--brand-primary);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  flex: 0 0 auto;
 }
 
 .event-date strong {
@@ -127,5 +104,34 @@
 
 .event-date span {
   font-size: 0.7rem;
-  font-weight: 700;
+  font-weight: 800;
+}
+
+[data-theme='dark'] .event-date {
+  background: rgba(179, 77, 12, 0.18);
+}
+
+@media (max-width: 1100px) {
+  .metric-grid,
+  .dashboard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-filters {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .dashboard-filters p-select,
+  .wide-card {
+    width: 100%;
+    grid-column: span 1;
+  }
+
+  .metric-grid,
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
 }

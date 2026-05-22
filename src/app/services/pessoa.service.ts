@@ -11,6 +11,7 @@ import { FaixaEtaria } from './faixa-etaria.service';
 export interface PessoaBase {
   ds_nome: string;
   nr_telefone?: string | null;
+  tp_genero?: 'F' | 'M' | null;
   dt_nascimento?: string | null;
   seq_cidade?: number | null;
   seq_filial?: number | null;
@@ -26,6 +27,20 @@ export interface PessoaCreate extends PessoaBase {
 export interface PessoaUpdate extends PessoaBase {
   st_ativo?: boolean | null;
   seq_ministerios: number[];
+}
+
+export interface PessoaVisitanteCreate {
+  ds_nome: string;
+  nr_telefone?: string | null;
+  tp_genero?: 'F' | 'M' | null;
+  seq_cidade?: number | null;
+  seq_filial?: number | null;
+  ds_como_conheceu: number;
+  st_frequenta_igreja: boolean;
+  aceita_contato: boolean;
+  ds_nome_convidou?: string | null;
+  seq_evento_frequentou?: number | null;
+  ds_observacao?: string | null;
 }
 
 export interface PessoaLider {
@@ -50,12 +65,14 @@ export interface PessoaFiltros {
   seq_pessoa?: number | null;
   ds_nome?: string | null;
   nr_telefone?: string | null;
+  tp_genero?: 'F' | 'M' | null;
   dt_nascimento?: string | null;
   seq_cidade?: number | null;
   seq_filial?: number | null;
   seq_vinculo?: number | null;
   seq_faixa_etaria?: number | null;
   seq_lider?: number | null;
+  seq_lideres?: number[];
   st_ativo?: boolean | null;
   seq_ministerios?: number[];
 }
@@ -83,15 +100,22 @@ export class PessoaService {
   }
 
   buscarPorId(id: number): Observable<Pessoa> {
-    return this.http.get<Pessoa>(`${this.apiUrl}/${id}`);
+    return this.http.get<Pessoa>(`${this.apiUrl}${id}`);
   }
 
   criar(pessoa: PessoaCreate): Observable<Pessoa> {
     return this.http.post<Pessoa>(this.apiUrl, this.comUsuarioLogado(pessoa));
   }
 
+  criarVisitante(visitante: PessoaVisitanteCreate): Observable<Pessoa> {
+    return this.http.post<Pessoa>(`${this.apiUrl}visitante`, {
+      ...visitante,
+      nr_telefone: this.limparMascaraTelefone(visitante.nr_telefone)
+    });
+  }
+
   atualizar(id: number, pessoa: PessoaUpdate): Observable<Pessoa> {
-    return this.http.put<Pessoa>(`${this.apiUrl}/${id}`, this.comUsuarioLogado(pessoa));
+    return this.http.put<Pessoa>(`${this.apiUrl}${id}`, this.comUsuarioLogado(pessoa));
   }
 
   calcularIdade(pessoaOuData: Pessoa | string | null | undefined): number | null {
@@ -149,15 +173,25 @@ export class PessoaService {
   private comUsuarioLogado(pessoa: PessoaCreate | PessoaUpdate): PessoaCreateRequest | PessoaUpdateRequest {
     return {
       ...pessoa,
+      nr_telefone: this.limparMascaraTelefone(pessoa.nr_telefone),
       id_usuario_logado: environment.id_usuario_logado
     };
+  }
+
+  private limparMascaraTelefone(telefone: string | null | undefined): string | null | undefined {
+    if (telefone === null || telefone === undefined) {
+      return telefone;
+    }
+
+    const numeros = telefone.replace(/\D/g, '');
+    return numeros || null;
   }
 
   private montarParams(filtros: PessoaFiltros): HttpParams {
     let params = new HttpParams();
 
     Object.entries(filtros).forEach(([chave, valor]) => {
-      if (chave === 'seq_ministerios' || valor === null || valor === undefined || valor === '') {
+      if (chave === 'seq_ministerios' || chave === 'seq_lideres' || valor === null || valor === undefined || valor === '') {
         return;
       }
 
@@ -166,6 +200,10 @@ export class PessoaService {
 
     filtros.seq_ministerios?.forEach(seqMinisterio => {
       params = params.append('seq_ministerios', String(seqMinisterio));
+    });
+
+    filtros.seq_lideres?.forEach(seqLider => {
+      params = params.append('seq_lideres', String(seqLider));
     });
 
     return params;

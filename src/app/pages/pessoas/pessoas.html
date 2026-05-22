@@ -1,218 +1,227 @@
-<section class="container-fluid pessoas-page">
-  <div class="d-flex justify-content-between align-items-center mb-3">
+<section class="app-page pessoas-page">
+  <header class="page-header">
     <div>
-      <h1 class="h3 mb-1">Lista de Pessoas</h1>
-      <div class="title-line"></div>
+      <h1 class="page-title">Pessoas</h1>
+      <p class="page-subtitle">Consulte, filtre e mantenha os cadastros da igreja.</p>
     </div>
 
-    <a class="btn btn-primary px-4" routerLink="/pessoas/novo">
-      Cadastrar Pessoa
-    </a>
-  </div>
+    <p-button
+      label="Cadastrar pessoa"
+      icon="pi pi-plus"
+      routerLink="/pessoas/novo"
+    />
+  </header>
 
-  <div class="card app-card mb-4">
-    <div class="card-body">
-      <form (ngSubmit)="pesquisar()">
-        <div class="row g-3 align-items-end">
-          <div class="col-12 col-md-6 col-lg-2">
-            <label class="form-label">Codigo:</label>
-            <input type="number" class="form-control app-input" name="seqPessoa" [(ngModel)]="filtro.seqPessoa" />
-          </div>
+  <p-card styleClass="mb-4">
+    <form (ngSubmit)="pesquisar()" class="form-grid">
+      <div class="field col-span-4">
+        <label for="dsNome">Nome</label>
+        <input id="dsNome" pInputText type="text" name="dsNome" [(ngModel)]="filtro.dsNome" />
+      </div>
 
-          <div class="col-12 col-md-6 col-lg-4">
-            <label class="form-label">Nome:</label>
-            <input type="text" class="form-control app-input" name="dsNome" [(ngModel)]="filtro.dsNome" />
-          </div>
+      <div class="field col-span-2">
+        <label for="nrTelefone">Telefone</label>
+        <input id="nrTelefone" pInputText appTelefoneMask type="tel" name="nrTelefone" [(ngModel)]="filtro.nrTelefone" />
+      </div>
 
-          <div class="col-12 col-md-6 col-lg-3">
-            <label class="form-label">Telefone:</label>
-            <input type="text" class="form-control app-input" name="nrTelefone" [(ngModel)]="filtro.nrTelefone" />
-          </div>
+      <div class="field col-span-3">
+        <label for="tpGenero">Gênero</label>
+        <p-select
+          inputId="tpGenero"
+          name="tpGenero"
+          [options]="generos"
+          optionLabel="label"
+          optionValue="value"
+          [(ngModel)]="filtro.tpGenero"
+        />
+      </div>
 
-          <div class="col-12 col-md-6 col-lg-3">
-            <label class="form-label">Nascimento:</label>
-            <input type="date" class="form-control app-input" name="dtNascimento" [(ngModel)]="filtro.dtNascimento" />
-          </div>
+      <div class="field col-span-3">
+        <label for="dtNascimento">Nascimento</label>
+        <input id="dtNascimento" pInputText type="date" name="dtNascimento" [(ngModel)]="filtro.dtNascimento" />
+      </div>
 
-          <div class="col-12 col-md-6 col-lg-3">
-            <label class="form-label">Faixa Etaria:</label>
-            <select class="form-select app-input" name="seqFaixaEtaria" [(ngModel)]="filtro.seqFaixaEtaria">
-              <option value="">Todas as faixas</option>
+      <div class="field col-span-3">
+        <label for="seqFaixaEtaria">Faixa Etária</label>
+        <p-select
+          inputId="seqFaixaEtaria"
+          name="seqFaixaEtaria"
+          [options]="faixasEtarias"
+          optionLabel="ds_nome"
+          optionValue="seq_faixa_etaria"
+          placeholder="Todas as faixas"
+          [showClear]="true"
+          [(ngModel)]="filtro.seqFaixaEtaria"
+        />
+      </div>
 
-              @for (faixa of faixasEtarias; track faixa.seq_faixa_etaria) {
-                <option [value]="faixa.seq_faixa_etaria">
-                  {{ faixa.ds_nome }}
-                </option>
-              }
-            </select>
-          </div>
+      <div class="field col-span-3">
+        <label for="seqVinculo">Vínculo</label>
+        <p-select
+          inputId="seqVinculo"
+          name="seqVinculo"
+          [options]="vinculos"
+          optionLabel="ds_nome"
+          optionValue="seq_vinculo"
+          placeholder="Todos os vinculos"
+          [showClear]="true"
+          [(ngModel)]="filtro.seqVinculo"
+        />
+      </div>
 
-          <div class="col-12 col-md-6 col-lg-3">
-            <label class="form-label">Vinculo:</label>
-            <select class="form-select app-input" name="seqVinculo" [(ngModel)]="filtro.seqVinculo">
-              <option value="">Todos os vinculos</option>
+      <div class="field col-span-3">
+        <label for="seqFilial">Congregação</label>
+        <p-select
+          inputId="seqFilial"
+          name="seqFilial"
+          [options]="filiais"
+          optionLabel="ds_nome"
+          optionValue="seq_filial"
+          placeholder="Todas as congregações"
+          [showClear]="true"
+          [(ngModel)]="filtro.seqFilial"
+        />
+      </div>
 
-              @for (vinculo of vinculos; track vinculo.seq_vinculo) {
-                <option [value]="vinculo.seq_vinculo">
-                  {{ vinculo.ds_nome }}
-                </option>
-              }
-            </select>
-          </div>
+      <div class="field col-span-3">
+        <label for="seqCidade">Bairro de Residência</label>
+        <p-select
+          inputId="seqCidade"
+          name="seqCidade"
+          [options]="cidades"
+          optionLabel="ds_nome"
+          optionValue="seq_cidade"
+          placeholder="Todas as cidades"
+          [filter]="true"
+          [showClear]="true"
+          [(ngModel)]="filtro.seqCidade"
+        />
+      </div>
 
-          <div class="col-12 col-md-6 col-lg-3">
-            <label class="form-label">Filial:</label>
-            <select class="form-select app-input" name="seqFilial" [(ngModel)]="filtro.seqFilial">
-              <option value="">Todas as congregacoes</option>
+      <div class="field col-span-4">
+        <label for="seqLideres">Líder(es)</label>
+        <p-multiselect
+          inputId="seqLideres"
+          name="seqLideres"
+          [options]="lideres"
+          optionLabel="ds_nome"
+          optionValue="seq_pessoa"
+          placeholder="Selecione os lideres"
+          [filter]="true"
+          display="chip"
+          [(ngModel)]="filtro.seqLideres"
+        />
+      </div>
 
-              @for (filial of filiais; track filial.seq_filial) {
-                <option [value]="filial.seq_filial">
-                  {{ filial.ds_nome }}
-                </option>
-              }
-            </select>
-          </div>
+     
+      <div class="field col-span-6">
+        <label for="seqMinisterios">Ministérios/serviços</label>
+        <p-multiselect
+          inputId="seqMinisterios"
+          name="seqMinisterios"
+          [options]="ministerios"
+          optionLabel="ds_nome"
+          optionValue="seq_ministerio"
+          placeholder="Selecione os ministerios"
+          display="chip"
+          [(ngModel)]="filtro.seqMinisterios"
+        />
+      </div>
 
-          <div class="col-12 col-md-6 col-lg-3">
-            <label class="form-label">Bairro de residencia:</label>
-            <select class="form-select app-input" name="seqCidade" [(ngModel)]="filtro.seqCidade">
-              <option value="">Todas as cidades</option>
+       <div class="field col-span-2">
+        <label for="stAtivo">Status</label>
+        <p-select
+          inputId="stAtivo"
+          name="stAtivo"
+          [options]="situacoes"
+          optionLabel="label"
+          optionValue="value"
+          [(ngModel)]="filtro.stAtivo"
+        />
+      </div>
 
-              @for (cidade of cidades; track cidade.seq_cidade) {
-                <option [value]="cidade.seq_cidade">
-                  {{ cidade.ds_nome }}
-                </option>
-              }
-            </select>
-          </div>
+      <div class="actions-row col-span-12">
+        <p-button type="button" label="Limpar" icon="pi pi-filter-slash" severity="secondary" [outlined]="true" (onClick)="limparFiltros()" />
+        <p-button type="submit" label="Pesquisar" icon="pi pi-search" />
+      </div>
+    </form>
+  </p-card>
 
-          <div class="col-12 col-md-6 col-lg-3">
-            <label class="form-label">Lider:</label>
-            <select class="form-select app-input" name="seqLider" [(ngModel)]="filtro.seqLider">
-              <option value="">Todos os lideres</option>
-
-              @for (lider of lideres; track lider.seq_pessoa) {
-                <option [value]="lider.seq_pessoa">
-                  {{ lider.ds_nome }}
-                </option>
-              }
-            </select>
-          </div>
-
-          <div class="col-12 col-md-6 col-lg-3">
-            <label class="form-label">Situacao:</label>
-            <select class="form-select app-input" name="stAtivo" [(ngModel)]="filtro.stAtivo">
-              <option value="true">Ativos</option>
-              <option value="false">Inativos</option>
-            </select>
-          </div>
-
-          <div class="col-12 col-lg-6">
-            <label class="form-label">Ministerios/Servicos:</label>
-            <select class="form-select app-input" multiple name="seqMinisterios" [(ngModel)]="filtro.seqMinisterios">
-              @for (ministerio of ministerios; track ministerio.seq_ministerio) {
-                <option [value]="ministerio.seq_ministerio">
-                  {{ ministerio.ds_nome }}
-                </option>
-              }
-            </select>
-          </div>
-
-          <div class="col-12 col-lg-6 d-flex justify-content-lg-end gap-2">
-            <button type="button" class="btn btn-outline-light px-4" (click)="limparFiltros()">Limpar</button>
-            <button type="submit" class="btn btn-primary px-4">Pesquisar</button>
-          </div>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <div class="table-responsive">
-    <table class="table table-bordered table-hover align-middle pessoas-table app-table">
-      <thead>
+  <p-card>
+    <p-table
+      [value]="pessoas"
+      [paginator]="true"
+      [rows]="10"
+      [rowsPerPageOptions]="[10, 20, 50]"
+      responsiveLayout="scroll"
+      styleClass="p-datatable-sm"
+    >
+      <ng-template pTemplate="header">
         <tr>
           <th>Nome</th>
-          <th>Vinculo</th>
-          <th>Ministerios/Servicos</th>
-          <th>Bairro de Residencia</th>
-          <th>Congregacao</th>
-          <th class="text-center">Acoes</th>
+          <th>Vínculo</th>
+          <th>Ministerios/servicos</th>
+          <th>Bairro</th>
+          <th>Congregação</th>
+          <th>Lider</th>
+          <th class="actions-cell">Acoes</th>
         </tr>
-      </thead>
+      </ng-template>
 
-      <tbody>
-        @for (pessoa of pessoas; track pessoa.seq_pessoa) {
-          <tr>
-            <td>{{ pessoa.ds_nome }}</td>
-
-            <td>
-              {{ pessoa.vinculo?.ds_nome || '-' }}
-            </td>
-
-            <td>
-              @if (pessoa.ministerios?.length) {
+      <ng-template pTemplate="body" let-pessoa>
+        <tr>
+          <td>{{ pessoa.ds_nome }}</td>
+          <td>{{ pessoa.vinculo?.ds_nome || '-' }}</td>
+          <td>
+            @if (pessoa.ministerios?.length) {
+              <div class="tag-list">
                 @for (ministerio of pessoa.ministerios; track ministerio.seq_ministerio) {
-                  <span class="badge badge-vinculo badge-membro">
-                    {{ ministerio.ds_nome }}
-                  </span>
+                  <p-tag [value]="ministerio.ds_nome" severity="info" />
                 }
-              } @else {
-                <span>-</span>
-              }
-            </td>
-
-            <td>
-              {{ pessoa.cidade?.ds_nome || '-' }}
-              {{ pessoa.cidade?.uf ? ' - ' + pessoa.cidade?.uf : '' }}
-            </td>
-
-            <td>
-              {{ pessoa.filial?.ds_nome || '-' }}
-            </td>
-
-            <td class="text-center">
-              <div class="d-flex justify-content-center gap-2">
-                <a
-                  class="btn btn-sm btn-action btn-action-text"
-                  [routerLink]="['/pessoas', pessoa.seq_pessoa, 'editar']"
-                  title="Alterar"
-                >
-                  <i class="fa-solid fa-pen"></i>
-                  <span>Alterar</span>
-                </a>
-
-                <button
-                  class="btn btn-sm btn-action btn-action-text"
-                  title="Detalhar"
-                >
-                  <i class="fa-solid fa-magnifying-glass"></i>
-                  <span>Detalhar</span>
-                </button>
               </div>
-            </td>
-          </tr>
-        }
-      </tbody>
-    </table>
-  </div>
+            } @else {
+              <span>-</span>
+            }
+          </td>
+          <td>
+            {{ pessoa.cidade?.ds_nome || '-' }}
+            {{ pessoa.cidade?.uf ? ' - ' + pessoa.cidade?.uf : '' }}
+          </td>
+          <td>{{ pessoa.filial?.ds_nome || '-' }}</td>
+          <td>
+            @if (pessoa.lider) {
+              <p-chip [label]="formatarNomeLider(pessoa)" />
+            } @else {
+              <span>-</span>
+            }
+          </td>
+          <td>
+            <div class="table-actions">
+              <p-button
+                icon="pi pi-pencil"
+                label="Alterar"
+                size="small"
+                [outlined]="true"
+                [routerLink]="['/pessoas', pessoa.seq_pessoa, 'editar']"
+              />
+              <p-button
+                icon="pi pi-search"
+                label="Detalhar"
+                size="small"
+                severity="secondary"
+                [outlined]="true"
+                [routerLink]="['/pessoas', pessoa.seq_pessoa, 'detalhar']"
+              />
+            </div>
+          </td>
+        </tr>
+      </ng-template>
 
-  <nav class="d-flex justify-content-center mt-3">
-    <ul class="pagination pagination-sm app-pagination">
-      <li class="page-item">
-        <a class="page-link" href="#">Anterior</a>
-      </li>
-      <li class="page-item">
-        <a class="page-link" href="#">1</a>
-      </li>
-      <li class="page-item active">
-        <a class="page-link" href="#">2</a>
-      </li>
-      <li class="page-item">
-        <a class="page-link" href="#">3</a>
-      </li>
-      <li class="page-item">
-        <a class="page-link" href="#">Proximo</a>
-      </li>
-    </ul>
-  </nav>
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="7" class="empty-state">Nenhuma pessoa encontrada.</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </p-card>
 </section>

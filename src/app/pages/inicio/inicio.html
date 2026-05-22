@@ -1,171 +1,118 @@
-<section class="container-fluid dashboard-page">
-  <div class="d-flex justify-content-between align-items-center mb-4">
+<section class="app-page dashboard-page">
+  <header class="page-header">
     <div>
-      <h1 class="h3 fw-bold mb-1">Dashboard Renascer</h1>
-      <p class="text-secondary mb-0">Pessoas, visitantes e Kids</p>
+      <h1 class="page-title">Dashboard Renascer</h1>
+      <p class="page-subtitle">Pessoas, visitantes e Kids</p>
     </div>
 
-    <div class="row g-3 align-items-end">
-        <div class="col-auto">
-            <select class="form-select app-input dashboard-periodo">
-            <option>Luziânia</option>
-            <option>Todas as filiais</option>
-            <option>Paranoá</option>
-            <option>Brasília</option>
-            </select>
-        </div>
-
-        <div class="col-auto">
-            <select class="form-select app-input dashboard-periodo">
-            <option>Este mês</option>
-            <option>Últimos 30 dias</option>
-            <option>Este ano</option>
-            </select>
-        </div>
-        </div>
+    <div class="dashboard-filters">
+      <p-select [options]="filiais" optionLabel="label" optionValue="value" [(ngModel)]="filialSelecionada" />
+      <p-select [options]="periodos" optionLabel="label" optionValue="value" [(ngModel)]="periodoSelecionado" />
     </div>
+  </header>
 
-  <div class="row g-3 mb-4">
-    <div class="col-md-3">
-      <div class="app-card metric">
-        <div class="metric-label">Pessoas cadastradas</div>
-        <div class="metric-value">248</div>
-        <div class="metric-note">+12 este mês</div>
-      </div>
-    </div>
+  <div class="metric-grid">
+    <p-card styleClass="metric">
+      <div class="metric-label">Pessoas cadastradas</div>
+      <div class="metric-value">248</div>
+      <div class="metric-note">+12 este mes</div>
+    </p-card>
 
-    <div class="col-md-3">
-      <div class="app-card metric">
-        <div class="metric-label">Membros ativos</div>
-        <div class="metric-value">176</div>
-        <div class="metric-note">71% da base</div>
-      </div>
-    </div>
+    <p-card styleClass="metric">
+      <div class="metric-label">Membros ativos</div>
+      <div class="metric-value">176</div>
+      <div class="metric-note">71% da base</div>
+    </p-card>
 
-    <div class="col-md-3">
-      <div class="app-card metric">
-        <div class="metric-label">Visitantes do mês</div>
-        <div class="metric-value">19</div>
-        <div class="metric-note">8 aceitaram contato</div>
-      </div>
-    </div>
+    <p-card styleClass="metric">
+      <div class="metric-label">Visitantes do mes</div>
+      <div class="metric-value">19</div>
+      <div class="metric-note">8 aceitaram contato</div>
+    </p-card>
 
-    <div class="col-md-3">
-      <div class="app-card metric">
-        <div class="metric-label">Crianças no Kids</div>
-        <div class="metric-value">7</div>
-        <div class="metric-note">1 com restrição</div>
-      </div>
-    </div>
+    <p-card styleClass="metric">
+      <div class="metric-label">Criancas no Kids</div>
+      <div class="metric-value">7</div>
+      <div class="metric-note">1 com restricao</div>
+    </p-card>
   </div>
 
-  <div class="row g-4 mb-4">
-    <div class="col-lg-4">
-      <div class="app-card p-4 h-100">
-        <div class="section-title">Pessoas por Congregação</div>
-        <div class="chart-box">
-          <canvas #bairroChart></canvas>
-        </div>
+  <div class="dashboard-grid">
+    <p-card header="Pessoas por Congregação">
+      <div class="chart-box">
+        <canvas #bairroChart></canvas>
       </div>
-    </div>
+    </p-card>
 
-    <div class="col-lg-4">
-      <div class="app-card p-4 h-100">
-        <div class="section-title">Pessoas por Perfil</div>
-        <div class="chart-box">
-          <canvas #perfilChart></canvas>
-        </div>
+    <p-card header="Pessoas por Perfil">
+      <div class="chart-box">
+        <canvas #perfilChart></canvas>
       </div>
-    </div>
+    </p-card>
 
-    <div class="col-lg-4">
-      <div class="app-card p-4 h-100">
-        <div class="section-title">Visitantes por Culto</div>
-        <div class="chart-box">
-          <canvas #cultoChart></canvas>
-        </div>
+    <p-card header="Visitantes por Culto">
+      <div class="chart-box">
+        <canvas #cultoChart></canvas>
       </div>
-    </div>
+    </p-card>
 
-    <div class="col-lg-8">
-      <div class="app-card p-4 h-100">
-        <div class="section-title">Evolução de Visitantes</div>
-        <div class="chart-box">
-         <canvas #visitantesMesChart></canvas>
-        </div>
+    <p-card header="Evolucao de Visitantes" styleClass="wide-card">
+      <div class="chart-box">
+        <canvas #visitantesMesChart></canvas>
       </div>
-    </div>
+    </p-card>
 
-    <div class="col-lg-4">
-      <div class="app-card p-4 h-100">
-        <div class="section-title">Pontos de Cuidado</div>
-
-        <div class="list-item">
-          <strong>5 visitantes</strong>
-          <div class="text-secondary">Aceitaram contato e ainda estão pendentes.</div>
-        </div>
-
-        <div class="list-item">
-          <strong>1 criança</strong>
-          <div class="text-secondary">Sem responsável autorizado cadastrado.</div>
-        </div>
-
-        <div class="list-item">
-          <strong>9 cadastros</strong>
-          <div class="text-secondary">Sem telefone informado.</div>
-        </div>
-
-        <div class="list-item">
-          <strong>4 aniversariantes</strong>
-          <div class="text-secondary">Nesta semana.</div>
-        </div>
-      </div>
-    </div>
-  </div>
-<div class="row g-4 mb-4">
-  <div class="col-lg-4">
-    <div class="app-card p-4 h-100">
-      <div class="section-title d-flex align-items-center gap-2">
-        <i class="fa-solid fa-cake-candles"></i>
-        Aniversariantes da Semana
+    <p-card header="Pontos de Cuidado">
+      <div class="list-item">
+        <strong>5 visitantes</strong>
+        <div class="muted">Aceitaram contato e ainda estao pendentes.</div>
       </div>
 
+      <div class="list-item">
+        <strong>1 crianca</strong>
+        <div class="muted">Sem responsavel autorizado cadastrado.</div>
+      </div>
+
+      <div class="list-item">
+        <strong>9 cadastros</strong>
+        <div class="muted">Sem telefone informado.</div>
+      </div>
+
+      <div class="list-item">
+        <strong>4 aniversariantes</strong>
+        <div class="muted">Nesta semana.</div>
+      </div>
+    </p-card>
+
+    <p-card header="Aniversariantes da Semana">
       <div class="birthday-list">
         <div class="birthday-item">
           <div>
             <strong>Marina Alves</strong>
-            <div class="text-secondary">Quarta-feira, 08/05</div>
+            <div class="muted">Quarta-feira, 08/05</div>
           </div>
-          <span class="badge birthday-age">32 anos</span>
+          <p-tag value="32 anos" severity="warn" />
         </div>
 
         <div class="birthday-item">
           <div>
-            <strong>João Pedro</strong>
-            <div class="text-secondary">Sexta-feira, 10/05</div>
+            <strong>Joao Pedro</strong>
+            <div class="muted">Sexta-feira, 10/05</div>
           </div>
-          <span class="badge birthday-age">14 anos</span>
+          <p-tag value="14 anos" severity="warn" />
         </div>
 
         <div class="birthday-item">
           <div>
             <strong>Renata Lima</strong>
-            <div class="text-secondary">Domingo, 12/05</div>
+            <div class="muted">Domingo, 12/05</div>
           </div>
-          <span class="badge birthday-age">41 anos</span>
+          <p-tag value="41 anos" severity="warn" />
         </div>
       </div>
-    </div>
-  </div>
+    </p-card>
 
-
-  <div class="col-lg-8">
-    <div class="app-card p-4 h-100">
-      <div class="section-title d-flex align-items-center gap-2">
-        <i class="fa-solid fa-calendar-days"></i>
-        Próximos Eventos
-      </div>
-
+    <p-card header="Proximos Eventos" styleClass="wide-card">
       <div class="event-list">
         <div class="event-item">
           <div class="event-date">
@@ -174,8 +121,8 @@
           </div>
 
           <div>
-            <strong>Culto de Celebração</strong>
-            <div class="text-secondary">Domingo, 10h • Renascer Luziânia</div>
+            <strong>Culto de Celebracao</strong>
+            <div class="muted">Domingo, 10h - Renascer Luziania</div>
           </div>
         </div>
 
@@ -186,8 +133,8 @@
           </div>
 
           <div>
-            <strong>Encontro de Líderes</strong>
-            <div class="text-secondary">Quinta-feira, 20h • Online</div>
+            <strong>Encontro de Lideres</strong>
+            <div class="muted">Quinta-feira, 20h - Online</div>
           </div>
         </div>
 
@@ -199,55 +146,34 @@
 
           <div>
             <strong>Batismo</strong>
-            <div class="text-secondary">Domingo, 16h • Brasília</div>
+            <div class="muted">Domingo, 16h - Brasilia</div>
           </div>
         </div>
       </div>
-    </div>
+    </p-card>
   </div>
-</div>
 
-  <div class="app-card p-4">
-    <div class="section-title">Visitantes Pendentes</div>
+  <p-card header="Visitantes Pendentes" styleClass="mt-4">
+    <p-table [value]="visitantesPendentes" responsiveLayout="scroll" styleClass="p-datatable-sm">
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Nome</th>
+          <th>Culto</th>
+          <th>Convidado por</th>
+          <th>Telefone</th>
+          <th>Status</th>
+        </tr>
+      </ng-template>
 
-    <div class="table-responsive">
-      <table class="table table-bordered table-hover align-middle mb-0 app-table">
-        <thead>
-          <tr>
-            <th>Nome</th>
-            <th>Culto</th>
-            <th>Convidado por</th>
-            <th>Telefone</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          <tr>
-            <td>Marina Alves</td>
-            <td>Domingo - 10h</td>
-            <td>Luana</td>
-            <td>(61) 99999-0000</td>
-            <td><span class="badge badge-soft">Aguardando contato</span></td>
-          </tr>
-
-          <tr>
-            <td>João Pedro</td>
-            <td>Domingo - 18h</td>
-            <td>Espontâneo</td>
-            <td>(61) 98888-0000</td>
-            <td><span class="badge badge-soft">Primeiro retorno</span></td>
-          </tr>
-
-          <tr>
-            <td>Renata Lima</td>
-            <td>Quarta - 20h</td>
-            <td>José</td>
-            <td>(61) 97777-0000</td>
-            <td><span class="badge badge-soft">Deseja célula</span></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
+      <ng-template pTemplate="body" let-visitante>
+        <tr>
+          <td>{{ visitante.nome }}</td>
+          <td>{{ visitante.culto }}</td>
+          <td>{{ visitante.convidadoPor }}</td>
+          <td>{{ visitante.telefone }}</td>
+          <td><p-tag [value]="visitante.status" severity="info" /></td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </p-card>
 </section>

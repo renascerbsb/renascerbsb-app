@@ -1,72 +1,257 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ConfirmationService, MessageService } from 'primeng/api';
+import { ButtonModule } from 'primeng/button';
+import { CardModule } from 'primeng/card';
+import { InputTextModule } from 'primeng/inputtext';
+import { MessageModule } from 'primeng/message';
+import { MultiSelectModule } from 'primeng/multiselect';
+import { RadioButtonModule } from 'primeng/radiobutton';
+import { SelectModule } from 'primeng/select';
+import { TextareaModule } from 'primeng/textarea';
+import { TelefoneMaskDirective } from '../../../../shared/directives/telefone-mask.directive';
+import { Cidade, CidadeService } from '../../../../services/cidade.service';
+import { Filial, FilialService } from '../../../../services/filial.service';
+import { Ministerio, MinisterioService } from '../../../../services/ministerio.service';
+import { Pessoa, PessoaCreate, PessoaService, PessoaUpdate } from '../../../../services/pessoa.service';
+import { Vinculo, VinculoService } from '../../../../services/vinculo.service';
+import { MensagensApp } from '../../../../shared/constants/mensagens.constants';
 
 @Component({
   selector: 'app-pessoa-form',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    ButtonModule,
+    CardModule,
+    InputTextModule,
+    MessageModule,
+    MultiSelectModule,
+    RadioButtonModule,
+    SelectModule,
+    TextareaModule,
+    TelefoneMaskDirective
+  ],
   templateUrl: './pessoa-form.html',
   styleUrl: './pessoa-form.scss',
 })
 export class PessoaForm implements OnInit {
   form!: FormGroup;
   modoEdicao = false;
+  modoDetalhe = false;
   pessoaId: string | null = null;
+  filiais: Filial[] = [];
+  residencias: Cidade[] = [];
+  vinculos: Vinculo[] = [];
+  ministerios: Ministerio[] = [];
+  lideres: Pessoa[] = [];
 
   constructor(
     private fb: FormBuilder,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private pessoaService: PessoaService,
+    private cidadeService: CidadeService,
+    private filialService: FilialService,
+    private vinculoService: VinculoService,
+    private ministerioService: MinisterioService,
+    private confirmationService: ConfirmationService,
+    private messageService: MessageService
   ) {}
 
   ngOnInit(): void {
     this.pessoaId = this.route.snapshot.paramMap.get('id');
-    this.modoEdicao = !!this.pessoaId;
+    const rotaAtual = this.route.snapshot.routeConfig?.path || '';
+    this.modoDetalhe = rotaAtual.includes('detalhar');
+    this.modoEdicao = !!this.pessoaId && !this.modoDetalhe;
 
     this.form = this.fb.group({
-      nome: ['', Validators.required],
-      telefone: [''],
-      dataNascimento: [''],
-      sexo: [''],
-      filial: ['Paranoá'],
-      residencia: ['Sobradinho'],
-      vinculos: [[]],
+      ds_nome: ['', Validators.required],
+      nr_telefone: [''],
+      dt_nascimento: [''],
+      tp_genero: ['F', Validators.required],
+      seq_filial: [null, Validators.required],
+      seq_cidade: [null, Validators.required],
+      seq_vinculo: [null, Validators.required],
+      seq_lider: [null],
+      seq_ministerios: [[]],
       observacoes: [''],
     });
 
-    if (this.modoEdicao) {
+    this.carregarListas();
+
+    if (this.pessoaId) {
       this.carregarPessoa();
     }
   }
 
+  get tituloPagina(): string {
+    if (this.modoDetalhe) {
+      return 'Detalhar pessoa';
+    }
+
+    if (this.modoEdicao) {
+      return 'Editar pessoa';
+    }
+
+    return 'Cadastrar pessoa';
+  }
+
+  get subtituloPagina(): string {
+    if (this.modoDetalhe) {
+      return 'Confira os dados cadastrais da pessoa.';
+    }
+
+    if (this.modoEdicao) {
+      return 'Atualize os dados cadastrais.';
+    }
+
+    return 'Informe os dados principais da pessoa.';
+  }
+
+  carregarListas(): void {
+    this.cidadeService.listar().subscribe({
+      next: (dados) => {
+        this.residencias = dados
+          .filter(cidade => cidade.st_ativo)
+          .map(cidade => ({
+            ...cidade,
+            ds_nome: `${cidade.ds_nome} - ${cidade.uf}`
+          }));
+      },
+      error: (erro) => {
+        console.error(MensagensApp.Pessoas_Error_BUSCAR_CIDADES, erro);
+      }
+    });
+
+    this.filialService.listar().subscribe({
+      next: (dados) => {
+        this.filiais = dados.filter(filial => filial.st_ativo);
+      },
+      error: (erro) => {
+        console.error(MensagensApp.Pessoas_Error_BUSCAR_FILIAIS, erro);
+      }
+    });
+
+    this.vinculoService.listar().subscribe({
+      next: (dados) => {
+        this.vinculos = dados.filter(vinculo => vinculo.st_ativo);
+      },
+      error: (erro) => {
+        console.error(MensagensApp.Pessoas_Error_BUSCAR_VINCULOS, erro);
+      }
+    });
+
+    this.ministerioService.listar().subscribe({
+      next: (dados) => {
+        this.ministerios = dados.filter(ministerio => ministerio.st_ativo);
+      },
+      error: (erro) => {
+        console.error(MensagensApp.Pessoas_Error_BUSCAR_MINISTERIOS, erro);
+      }
+    });
+
+    this.pessoaService.listar({ st_ativo: true }).subscribe({
+      next: (dados) => {
+        const seqPessoaAtual = this.pessoaId ? Number(this.pessoaId) : null;
+        this.lideres = dados.filter(pessoa => pessoa.seq_pessoa !== seqPessoaAtual);
+      },
+      error: (erro) => {
+        console.error(MensagensApp.Pessoas_Error_BUSCAR_LIDERES, erro);
+      }
+    });
+  }
+
   carregarPessoa(): void {
-    // Mock temporário. Depois isso virá do backend.
-    this.form.patchValue({
-      nome: 'Vaevo Basuan',
-      telefone: '(61) 99999-0000',
-      dataNascimento: '1988-09-30',
-      sexo: 'M',
-      filial: 'Brasília',
-      bairro: 'Santa Maria - DF',
-      vinculos: ['Pastor', 'Líder de célula'],
-      observacoes: 'Cadastro de exemplo para edição.',
+    if (!this.pessoaId) {
+      return;
+    }
+
+    this.pessoaService.buscarPorId(Number(this.pessoaId)).subscribe({
+      next: (pessoa) => {
+        this.form.patchValue({
+          ds_nome: pessoa.ds_nome,
+          nr_telefone: this.pessoaService.formatarTelefone(pessoa.nr_telefone),
+          dt_nascimento: pessoa.dt_nascimento || '',
+          tp_genero: pessoa.tp_genero || 'F',
+          seq_filial: pessoa.seq_filial || null,
+          seq_cidade: pessoa.seq_cidade || null,
+          seq_vinculo: pessoa.seq_vinculo || null,
+          seq_lider: pessoa.seq_lider || null,
+          seq_ministerios: pessoa.ministerios?.map(ministerio => ministerio.seq_ministerio) || []
+        });
+
+        if (this.modoDetalhe) {
+          this.form.disable();
+        }
+      },
+      error: (erro) => {
+        console.error(MensagensApp.Pessoas_Error_BUSCAR_PESSOA, erro);
+      }
     });
   }
 
   salvar(): void {
+    if (this.modoDetalhe) {
+      return;
+    }
+
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
 
+    this.confirmationService.confirm({
+      header: this.modoEdicao ? 'Confirmar alteração' : 'Confirmar cadastro',
+      message: this.modoEdicao ? 'Deseja salvar as alteracoes desta pessoa?' : 'Deseja cadastrar esta pessoa?',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Salvar',
+      rejectLabel: 'Cancelar',
+      accept: () => {
+        this.confirmarSalvar();
+      }
+    });
+  }
+
+  private confirmarSalvar(): void {
     const dados = this.form.value;
+    const payload = {
+      ds_nome: dados.ds_nome,
+      nr_telefone: dados.nr_telefone || null,
+      dt_nascimento: dados.dt_nascimento || null,
+      tp_genero: dados.tp_genero || null,
+      seq_cidade: dados.seq_cidade,
+      seq_filial: dados.seq_filial,
+      seq_vinculo: dados.seq_vinculo,
+      seq_faixa_etaria: null,
+      seq_lider: dados.seq_lider || null,
+      seq_ministerios: dados.seq_ministerios || []
+    };
 
-    if (this.modoEdicao) {
-      console.log('Atualizando pessoa:', this.pessoaId, dados);
-    } else {
-      console.log('Incluindo pessoa:', dados);
-    }
+    const request = this.modoEdicao && this.pessoaId
+      ? this.pessoaService.atualizar(Number(this.pessoaId), payload as PessoaUpdate)
+      : this.pessoaService.criar(payload as PessoaCreate);
 
-    this.router.navigate(['/pessoas']);
+    request.subscribe({
+      next: () => {
+        this.messageService.add({
+          severity: 'success',
+          summary: MensagensApp.Geral_Success_TITULO,
+          detail: this.modoEdicao
+            ? MensagensApp.Pessoas_Success_ATUALIZACAO_REALIZADA
+            : MensagensApp.Pessoas_Success_CADASTRO_REALIZADO
+        });
+        this.router.navigate(['/pessoas']);
+      },
+      error: (erro) => {
+        console.error(this.modoEdicao ? MensagensApp.Pessoas_Error_ATUALIZAR : MensagensApp.Pessoas_Error_INCLUIR, erro);
+      }
+    });
+  }
+
+  campoInvalido(nomeCampo: string): boolean {
+    const campo = this.form.get(nomeCampo);
+    return !!campo && campo.invalid && (campo.touched || campo.dirty);
   }
 }

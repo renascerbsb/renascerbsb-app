@@ -1,0 +1,125 @@
+<section class="app-page eventos-page">
+  <header class="page-header">
+    <div>
+      <h1 class="page-title">Eventos</h1>
+      <p class="page-subtitle">Consulte, filtre e mantenha os eventos da igreja.</p>
+    </div>
+
+    <p-button
+      label="Cadastrar evento"
+      icon="pi pi-plus"
+      routerLink="/eventos/novo"
+    />
+  </header>
+
+  <p-card styleClass="mb-4">
+    <form (ngSubmit)="pesquisar()" class="form-grid">
+      <div class="field col-span-2">
+        <label for="seqEvento">Codigo</label>
+        <input id="seqEvento" pInputText type="number" name="seqEvento" [(ngModel)]="filtro.seqEvento" />
+      </div>
+
+      <div class="field col-span-4">
+        <label for="dsNome">Nome</label>
+        <input id="dsNome" pInputText type="text" name="dsNome" [(ngModel)]="filtro.dsNome" />
+      </div>
+
+      <div class="field col-span-3">
+        <label for="stEventoFixo">Evento fixo</label>
+        <p-select
+          inputId="stEventoFixo"
+          name="stEventoFixo"
+          [options]="opcoesSimNao"
+          optionLabel="label"
+          optionValue="value"
+          [(ngModel)]="filtro.stEventoFixo"
+        />
+      </div>
+
+      <div class="field col-span-3">
+        <label for="dsRecorrencia">Recorrencia</label>
+        <p-select
+          inputId="dsRecorrencia"
+          name="dsRecorrencia"
+          [options]="recorrencias"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Todas"
+          [showClear]="true"
+          [(ngModel)]="filtro.dsRecorrencia"
+        />
+      </div>
+
+      <div class="field col-span-3">
+        <label for="stAtivo">Situacao</label>
+        <p-select
+          inputId="stAtivo"
+          name="stAtivo"
+          [options]="situacoes"
+          optionLabel="label"
+          optionValue="value"
+          [(ngModel)]="filtro.stAtivo"
+        />
+      </div>
+
+      <div class="actions-row col-span-9">
+        <p-button type="button" label="Limpar" icon="pi pi-filter-slash" severity="secondary" [outlined]="true" (onClick)="limparFiltros()" />
+        <p-button type="submit" label="Pesquisar" icon="pi pi-search" />
+      </div>
+    </form>
+  </p-card>
+
+  <p-card>
+    <p-table
+      [value]="eventos"
+      [paginator]="true"
+      [rows]="10"
+      [rowsPerPageOptions]="[10, 20, 50]"
+      responsiveLayout="scroll"
+      styleClass="p-datatable-sm"
+    >
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Nome</th>
+          <th>Descricao</th>
+          <th>Evento fixo</th>
+          <th>Recorrencia</th>
+          <th>Situacao</th>
+          <th class="actions-cell">Acoes</th>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="body" let-evento>
+        <tr>
+          <td>{{ evento.ds_nome }}</td>
+          <td>{{ evento.ds_descricao || '-' }}</td>
+          <td>
+            <p-tag [value]="evento.st_evento_fixo ? 'Sim' : 'Nao'" [severity]="evento.st_evento_fixo ? 'info' : 'secondary'" />
+          </td>
+          <td>{{ obterRecorrencia(evento.ds_recorrencia) }}</td>
+          <td>
+            <p-tag [value]="evento.st_ativo ? 'Ativo' : 'Inativo'" [severity]="evento.st_ativo ? 'success' : 'danger'" />
+          </td>
+          <td>
+            <div class="table-actions">
+              <p-button
+                icon="pi pi-pencil"
+                label="Alterar"
+                size="small"
+                [outlined]="true"
+                [routerLink]="['/eventos', evento.seq_evento, 'editar']"
+              />
+              <p-button icon="pi pi-search" label="Detalhar" size="small" severity="secondary" [outlined]="true" />
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="6" class="empty-state">Nenhum evento encontrado.</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </p-card>
+</section>

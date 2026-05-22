@@ -1,25 +1,20 @@
-<nav class="navbar navbar-expand-lg navbar-dark border-bottom border-secondary py-2">
-  <div class="container-fluid">
-    <a class="navbar-brand fw-bold" routerLink="/inicio">
-      
-      Renascer
-    </a>
-    <div class="navbar-nav ms-auto">
-      <a class="nav-link" routerLink="/inicio" routerLinkActive="active">Início</a>
-      <a class="nav-link" routerLink="/visitantes" routerLinkActive="active">Visitantes</a>
-      <a class="nav-link" routerLink="/pessoas" routerLinkActive="active">Pessoas</a>
-      <!-- <a class="nav-link" routerLink="/kids" routerLinkActive="active">Kids</a> -->
-    </div>
-    <div>
-      <button 
-        class="btn btn-sm btn-theme-toggle ms-3"
-        (click)="toggleTheme()"
-      >
-       <i class="fas"
-        [class.fa-sun]="isLight"
-        [class.fa-moon]="!isLight">
-      </i>
-      </button>
-    </div>
+<nav class="app-navbar">
+  <a class="brand" routerLink="/inicio">Renascer</a>
+
+  <div class="nav-links">
+    <a routerLink="/inicio" routerLinkActive="active">Inicio</a>
+    <a routerLink="/eventos" routerLinkActive="active">Eventos</a>
+    <a routerLink="/visitantes" routerLinkActive="active">Visitantes</a>
+    <a routerLink="/pessoas" routerLinkActive="active">Pessoas</a>
   </div>
+
+  <p-button
+    type="button"
+    [rounded]="true"
+    [text]="true"
+    severity="contrast"
+    [icon]="isLight ? 'pi pi-sun' : 'pi pi-moon'"
+    (onClick)="toggleTheme()"
+    ariaLabel="Alternar tema"
+  />
 </nav>

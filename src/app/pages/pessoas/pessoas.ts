@@ -7,13 +7,37 @@ import { FaixaEtaria, FaixaEtariaService } from '../../services/faixa-etaria.ser
 import { Vinculo, VinculoService } from '../../services/vinculo.service';
 import { Ministerio, MinisterioService } from '../../services/ministerio.service';
 import { FormsModule } from '@angular/forms';
+import { ButtonModule } from 'primeng/button';
+import { CardModule } from 'primeng/card';
+import { ChipModule } from 'primeng/chip';
+import { InputTextModule } from 'primeng/inputtext';
+import { MultiSelectModule } from 'primeng/multiselect';
+import { SelectModule } from 'primeng/select';
+import { TableModule } from 'primeng/table';
+import { TagModule } from 'primeng/tag';
+import { TelefoneMaskDirective } from '../../shared/directives/telefone-mask.directive';
+import { MensagensApp } from '../../shared/constants/mensagens.constants';
+
+type FiltroValor = string | number | null;
 
 @Component({
   selector: 'app-pessoas',
   standalone: true,
   templateUrl: './pessoas.html',
   styleUrl: './pessoas.scss',
-  imports: [RouterLink, FormsModule],
+  imports: [
+    RouterLink,
+    FormsModule,
+    ButtonModule,
+    CardModule,
+    ChipModule,
+    InputTextModule,
+    MultiSelectModule,
+    SelectModule,
+    TableModule,
+    TagModule,
+    TelefoneMaskDirective
+  ],
 })
 export class Pessoas implements OnInit {
 
@@ -25,19 +49,29 @@ export class Pessoas implements OnInit {
   ministerios: Ministerio[] = [];
   lideres: Pessoa[] = [];
   pessoasFiltradas: Pessoa[] = [];
+  situacoes = [
+    { label: 'Ativos', value: 'true' },
+    { label: 'Inativos', value: 'false' },
+    { label: 'Todos', value: '' }
+  ];
+  generos = [
+    { label: 'Todos', value: '' },
+    { label: 'Mulheres', value: 'F' },
+    { label: 'Homens', value: 'M' }
+  ];
 
   filtro = {
-    seqPessoa: '',
     dsNome: '',
     nrTelefone: '',
+    tpGenero: '',
     dtNascimento: '',
-    seqFaixaEtaria: '',
-    seqFilial: '',
-    seqCidade: '',
-    seqVinculo: '',
-    seqLider: '',
+    seqFaixaEtaria: null as FiltroValor,
+    seqFilial: null as FiltroValor,
+    seqCidade: null as FiltroValor,
+    seqVinculo: null as FiltroValor,
+    seqLideres: [] as number[],
     stAtivo: 'true',
-    seqMinisterios: [] as string[]
+    seqMinisterios: [] as number[]
   };
 
   constructor(
@@ -66,7 +100,7 @@ export class Pessoas implements OnInit {
           this.pessoas = dados;
         },
         error: (erro) => {
-          console.error('Erro ao buscar pessoas', erro);
+          console.error(MensagensApp.Pessoas_Error_BUSCAR_PESSOAS, erro);
         }
       });
   }
@@ -75,17 +109,27 @@ export class Pessoas implements OnInit {
     this.carregarPessoas();
   }
 
+  formatarNomeLider(pessoa: Pessoa): string {
+    const nome = pessoa.lider?.ds_nome?.trim();
+
+    if (!nome) {
+      return '-';
+    }
+
+    return nome.split(/\s+/).slice(0, 1).join(' ');
+  }
+
   limparFiltros(): void {
     this.filtro = {
-      seqPessoa: '',
       dsNome: '',
       nrTelefone: '',
+      tpGenero: '',
       dtNascimento: '',
-      seqFaixaEtaria: '',
-      seqFilial: '',
-      seqCidade: '',
-      seqVinculo: '',
-      seqLider: '',
+      seqFaixaEtaria: null,
+      seqFilial: null,
+      seqCidade: null,
+      seqVinculo: null,
+      seqLideres: [],
       stAtivo: 'true',
       seqMinisterios: []
     };
@@ -102,7 +146,7 @@ export class Pessoas implements OnInit {
         }));
       },
       error: (erro) => {
-        console.error('Erro ao buscar cidades', erro);
+        console.error(MensagensApp.Pessoas_Error_BUSCAR_CIDADES, erro);
       }
 
     });
@@ -114,7 +158,7 @@ export class Pessoas implements OnInit {
           this.filiais = dados;
         },
         error: (erro) => {
-          console.error('Erro ao buscar filiais', erro);
+          console.error(MensagensApp.Pessoas_Error_BUSCAR_FILIAIS, erro);
         }
       });
   }
@@ -125,7 +169,7 @@ export class Pessoas implements OnInit {
         this.faixasEtarias = dados.filter(faixa => faixa.st_ativo);
       },
       error: (erro) => {
-        console.error('Erro ao buscar faixas etarias', erro);
+        console.error(MensagensApp.Pessoas_Error_BUSCAR_FAIXAS_ETARIAS, erro);
       }
     });
   }
@@ -136,7 +180,7 @@ export class Pessoas implements OnInit {
         this.vinculos = dados.filter(vinculo => vinculo.st_ativo);
       },
       error: (erro) => {
-        console.error('Erro ao buscar vinculos', erro);
+        console.error(MensagensApp.Pessoas_Error_BUSCAR_VINCULOS, erro);
       }
     });
   }
@@ -147,7 +191,7 @@ export class Pessoas implements OnInit {
         this.ministerios = dados.filter(ministerio => ministerio.st_ativo);
       },
       error: (erro) => {
-        console.error('Erro ao buscar ministerios', erro);
+        console.error(MensagensApp.Pessoas_Error_BUSCAR_MINISTERIOS, erro);
       }
     });
   }
@@ -158,28 +202,28 @@ export class Pessoas implements OnInit {
         this.lideres = dados;
       },
       error: (erro) => {
-        console.error('Erro ao buscar lideres', erro);
+        console.error(MensagensApp.Pessoas_Error_BUSCAR_LIDERES, erro);
       }
     });
   }
 
   private montarFiltros(): PessoaFiltros {
     return {
-      seq_pessoa: this.converterNumero(this.filtro.seqPessoa),
       ds_nome: this.converterTexto(this.filtro.dsNome),
       nr_telefone: this.converterTexto(this.filtro.nrTelefone),
+      tp_genero: this.converterGenero(this.filtro.tpGenero),
       dt_nascimento: this.converterTexto(this.filtro.dtNascimento),
       seq_cidade: this.converterNumero(this.filtro.seqCidade),
       seq_filial: this.converterNumero(this.filtro.seqFilial),
       seq_vinculo: this.converterNumero(this.filtro.seqVinculo),
       seq_faixa_etaria: this.converterNumero(this.filtro.seqFaixaEtaria),
-      seq_lider: this.converterNumero(this.filtro.seqLider),
+      seq_lideres: this.filtro.seqLideres.map(seqLider => Number(seqLider)),
       st_ativo: this.converterBooleano(this.filtro.stAtivo),
       seq_ministerios: this.filtro.seqMinisterios.map(seqMinisterio => Number(seqMinisterio))
     };
   }
 
-  private converterNumero(valor: string): number | null {
+  private converterNumero(valor: FiltroValor): number | null {
     return valor ? Number(valor) : null;
   }
 
@@ -198,5 +242,9 @@ export class Pessoas implements OnInit {
     }
 
     return null;
+  }
+
+  private converterGenero(valor: string): 'F' | 'M' | null {
+    return valor === 'F' || valor === 'M' ? valor : null;
   }
 }

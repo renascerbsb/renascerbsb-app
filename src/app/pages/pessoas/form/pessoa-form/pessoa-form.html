@@ -1,134 +1,139 @@
-<section class="container-fluid pessoa-form-page">
-  <div class="d-flex justify-content-between align-items-center mb-4">
+<section class="app-page app-page-narrow pessoa-form-page">
+  <header class="page-header">
     <div>
-      <h1 class="h3 mb-1">
-        {{ modoEdicao ? 'Editar Pessoa' : 'Nova Pessoa' }}
-      </h1>
-      <p class="text-secondary mb-0">
-        {{ modoEdicao ? 'Atualize os dados cadastrais.' : 'Informe os dados principais da pessoa.' }}
-      </p>
+      <h1 class="page-title">{{ tituloPagina }}</h1>
+      <p class="page-subtitle">{{ subtituloPagina }}</p>
     </div>
 
-    <a class="btn btn-outline-light" routerLink="/pessoas">
-      Voltar
-    </a>
-  </div>
+    <p-button label="Voltar" icon="pi pi-arrow-left" severity="secondary" [outlined]="true" routerLink="/pessoas" />
+  </header>
 
-  <div class="card app-card">
-    <div class="card-body p-4">
-      <form [formGroup]="form" (ngSubmit)="salvar()">
-        <div class="row g-3">
-          <div class="col-12 col-lg-6">
-            <label class="form-label">Nome:</label>
-            <input class="form-control app-input" formControlName="nome" />
+  <p-card>
+    <form [formGroup]="form" (ngSubmit)="salvar()" class="form-grid">
+      <div class="field col-span-6">
+        <label for="ds_nome">Nome</label>
+        <input id="ds_nome" pInputText [invalid]="campoInvalido('ds_nome')" formControlName="ds_nome" />
 
-            <small class="text-danger" *ngIf="form.get('nome')?.invalid && form.get('nome')?.touched">
-              Nome é obrigatório.
-            </small>
-          </div>
+        @if (campoInvalido('ds_nome')) {
+          <p-message severity="error" size="small" variant="simple" text="Nome e obrigatorio." />
+        }
+      </div>
 
-          <div class="col-12 col-lg-3">
-            <label class="form-label">Telefone:</label>
-            <input class="form-control app-input" formControlName="telefone" />
-          </div>
+      <div class="field col-span-3">
+        <label for="nr_telefone">Telefone</label>
+        <input id="nr_telefone" pInputText appTelefoneMask type="tel" formControlName="nr_telefone" />
+      </div>
 
-          <div class="col-12 col-lg-3">
-            <label class="form-label">Data de nascimento:</label>
-            <input type="date" class="form-control app-input" formControlName="dataNascimento" />
-          </div>
+      <div class="field col-span-3">
+        <label for="dt_nascimento">Data de nascimento</label>
+        <input id="dt_nascimento" pInputText type="date" formControlName="dt_nascimento" />
+      </div>
 
-          <div class="col-12 col-lg-3">
-            <label class="form-label">Sexo:</label>
-            <select class="form-select app-input" formControlName="sexo">
-              <option value="">Selecione...</option>
-              <option value="M">Masculino</option>
-              <option value="F">Feminino</option>
-            </select>
-          </div>
+      <div class="field col-span-3">
+        <label>Genero</label>
+        <div class="radio-row">
+          <label>
+            <p-radiobutton name="tp_genero" value="F" formControlName="tp_genero" inputId="generoPessoaF" />
+            <span>Feminino</span>
+          </label>
 
-          <div class="col-12 col-lg-3">
-            <label class="form-label">Filial:</label>
-            <select class="form-select app-input" formControlName="filial">
-              <option>Paranoá</option>
-              <option>Brasília</option>
-              <option>Luziânia</option>
-            </select>
-          </div>
-
-          <div class="col-12 col-lg-6">
-            <label class="form-label">Bairro de residência:</label>
-             <select class="form-select app-input" formControlName="residencia">
-              <option>Recanto das Emas</option>
-              <option>Sobradinho</option>
-              <option>Vicente Pires</option>
-            </select>
-          </div>
-
-          <div class="col-12 col-lg-6">
-            <label class="form-label">Vínculo:</label>
-             <select class="form-select app-input" formControlName="residencia">
-              <option>Apóstolo</option>
-              <option>Bispo(a)</option>
-              <option>Pastor(a)</option>
-              <option>Evangelista</option>
-              <option>Presbítero(a)</option>
-              <option>Diácono(isa)</option>
-              <option>Evangelista</option>
-            </select>
-          </div>
-
-          <div class="col-12">
-            <label class="form-label d-block">Ministérios/serviços:</label>
-
-            <div class="d-flex gap-3 flex-wrap">
-              <label class="form-check">
-                <input class="form-check-input" type="checkbox" value="Kids" />
-                <span class="form-check-label">Ministério infantil</span>
-              </label>
-
-              <label class="form-check">
-                <input class="form-check-input" type="checkbox" value="Decoracao" />
-                <span class="form-check-label">Decoração</span>
-              </label>
-
-              <label class="form-check">
-                <input class="form-check-input" type="checkbox" value="Decoracao" />
-                <span class="form-check-label">Louvor</span>
-              </label>
-
-              <label class="form-check">
-                <input class="form-check-input" type="checkbox" value="Comunicacao" />
-                <span class="form-check-label">Comunicação</span>
-              </label>
-
-              <label class="form-check">
-                <input class="form-check-input" type="checkbox" value="Líder de célula" />
-                <span class="form-check-label">Líder de célula</span>
-              </label>
-
-               <label class="form-check">
-                <input class="form-check-input" type="checkbox" value="Líder de célula" />
-                <span class="form-check-label">Adote</span>
-              </label>
-            </div>
-          </div>
-
-          <div class="col-12">
-            <label class="form-label">Observações:</label>
-            <textarea class="form-control app-input" rows="4" formControlName="observacoes"></textarea>
-          </div>
-
-          <div class="col-12 d-flex justify-content-end gap-2 mt-3">
-            <a class="btn btn-outline-light px-4" routerLink="/pessoas">
-              Cancelar
-            </a>
-
-            <button class="btn btn-primary px-4" type="submit">
-              {{ modoEdicao ? 'Atualizar' : 'Salvar' }}
-            </button>
-          </div>
+          <label>
+            <p-radiobutton name="tp_genero" value="M" formControlName="tp_genero" inputId="generoPessoaM" />
+            <span>Masculino</span>
+          </label>
         </div>
-      </form>
-    </div>
-  </div>
+      </div>
+
+      <div class="field col-span-3">
+        <label for="seq_filial">Congregação</label>
+        <p-select
+          inputId="seq_filial"
+          [options]="filiais"
+          optionLabel="ds_nome"
+          optionValue="seq_filial"
+          placeholder="Selecione"
+          [invalid]="campoInvalido('seq_filial')"
+          formControlName="seq_filial"
+        />
+
+        @if (campoInvalido('seq_filial')) {
+          <p-message severity="error" size="small" variant="simple" text="Congregação e obrigatoria." />
+        }
+      </div>
+
+      <div class="field col-span-6">
+        <label for="seq_cidade">Bairro de residência</label>
+        <p-select
+          inputId="seq_cidade"
+          [options]="residencias"
+          optionLabel="ds_nome"
+          optionValue="seq_cidade"
+          placeholder="Selecione"
+          [filter]="true"
+          [invalid]="campoInvalido('seq_cidade')"
+          formControlName="seq_cidade"
+        />
+
+        @if (campoInvalido('seq_cidade')) {
+          <p-message severity="error" size="small" variant="simple" text="Bairro de residência e obrigatorio." />
+        }
+      </div>
+
+      <div class="field col-span-6">
+        <label for="seq_vinculo">Vínculo</label>
+        <p-select
+          inputId="seq_vinculo"
+          [options]="vinculos"
+          optionLabel="ds_nome"
+          optionValue="seq_vinculo"
+          placeholder="Selecione"
+          [invalid]="campoInvalido('seq_vinculo')"
+          formControlName="seq_vinculo"
+        />
+
+        @if (campoInvalido('seq_vinculo')) {
+          <p-message severity="error" size="small" variant="simple" text="Vinculo e obrigatorio." />
+        }
+      </div>
+
+      <div class="field col-span-6">
+        <label for="seq_ministerios">Ministérios/serviços</label>
+        <p-multiselect
+          inputId="seq_ministerios"
+          [options]="ministerios"
+          optionLabel="ds_nome"
+          optionValue="seq_ministerio"
+          display="chip"
+          placeholder="Selecione os ministerios"
+          formControlName="seq_ministerios"
+        />
+      </div>
+
+      <div class="field col-span-6">
+        <label for="seq_lider">Lider</label>
+        <p-select
+          inputId="seq_lider"
+          [options]="lideres"
+          optionLabel="ds_nome"
+          optionValue="seq_pessoa"
+          placeholder="Selecione"
+          [filter]="true"
+          [showClear]="true"
+          formControlName="seq_lider"
+        />
+      </div>
+
+      <div class="field col-span-12">
+        <label for="observacoes">Observacoes</label>
+        <textarea id="observacoes" pTextarea rows="5" formControlName="observacoes"></textarea>
+      </div>
+
+      <div class="actions-row col-span-12">
+        <p-button [label]="modoDetalhe ? 'Voltar' : 'Cancelar'" icon="pi pi-times" severity="secondary" [outlined]="true" routerLink="/pessoas" />
+        @if (!modoDetalhe) {
+          <p-button type="submit" [label]="modoEdicao ? 'Atualizar' : 'Salvar'" icon="pi pi-check" />
+        }
+      </div>
+    </form>
+  </p-card>
 </section>

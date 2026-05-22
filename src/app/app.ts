@@ -1,18 +1,13 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { Navbar } from './shared/navbar/navbar';
-import { provideHttpClient } from '@angular/common/http';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { ToastModule } from 'primeng/toast';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, Navbar],
+  imports: [RouterOutlet, Navbar, ConfirmDialogModule, ToastModule],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
 export class App {}
-
-export const appConfig = {
-  providers: [
-    provideHttpClient()
-  ]
-};
