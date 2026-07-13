@@ -8,6 +8,7 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { providePrimeNG } from 'primeng/config';
 
 import { routes } from './app.routes';
+import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { apiErrorInterceptor } from './core/interceptors/api-error.interceptor';
 
 const RenascerTheme = definePreset(Aura, {
@@ -34,7 +35,7 @@ export const appConfig: ApplicationConfig = {
     provideZoneChangeDetection({ eventCoalescing: true }),
     ConfirmationService,
     MessageService,
-    provideHttpClient(withInterceptors([apiErrorInterceptor])),
+    provideHttpClient(withInterceptors([authInterceptor, apiErrorInterceptor])),
     provideRouter(routes),
     provideAnimationsAsync(),
     providePrimeNG({

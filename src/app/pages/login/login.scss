@@ -1,0 +1,72 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.login-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    linear-gradient(135deg, rgba(179, 77, 12, 0.92), rgba(67, 20, 7, 0.94)),
+    url('/assets/img/logo_icon.png') center/320px no-repeat;
+}
+
+.login-panel {
+  width: min(100%, 430px);
+}
+
+.brand-area {
+  margin-bottom: 1.25rem;
+  text-align: center;
+  color: #ffffff;
+}
+
+.brand-area img {
+  width: 96px;
+  max-width: 34vw;
+  margin-bottom: 0.75rem;
+}
+
+.brand-area h1,
+.login-form h2 {
+  margin: 0;
+}
+
+.brand-area h1 {
+  font-size: 2rem;
+  font-weight: 800;
+}
+
+.brand-area p {
+  margin: 0.35rem 0 0;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.login-form h2 {
+  color: var(--text-main);
+  font-size: 1.45rem;
+}
+
+.login-form span {
+  display: inline-block;
+  margin-top: 0.25rem;
+  color: var(--text-muted);
+}
+
+.field small {
+  color: #dc2626;
+}
+
+@media (max-width: 520px) {
+  .login-page {
+    padding: 16px;
+  }
+}

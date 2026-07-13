@@ -1,7 +1,10 @@
-<app-navbar></app-navbar>
 <p-toast />
 <p-confirmdialog />
 
-<main class="app-main">
+@if (!isLoginPage) {
+  <app-navbar></app-navbar>
+}
+
+<main [class.app-main]="!isLoginPage">
   <router-outlet></router-outlet>
 </main>

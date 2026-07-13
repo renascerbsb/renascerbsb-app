@@ -1,0 +1,58 @@
+<section class="login-page">
+  <div class="login-panel">
+    <div class="brand-area">
+      <img src="assets/img/logo_transparente.png" alt="Renascer" />
+      <h1>Renascer BSB</h1>
+      <p>Sistema de Gestao Ministerial</p>
+    </div>
+
+    <p-card>
+      <form class="login-form" [formGroup]="form" (ngSubmit)="acessar()">
+        <div>
+          <h2>Acessar sistema</h2>
+          <span>Informe seu usuário e senha para continuar.</span>
+        </div>
+
+        <div class="field">
+          <label for="ds_usuario">Usuário</label>
+          <input
+            id="ds_usuario"
+            type="text"
+            pInputText
+            formControlName="ds_usuario"
+            autocomplete="username"
+            [class.ng-invalid]="campoInvalido('ds_usuario')"
+          />
+          @if (campoInvalido('ds_usuario')) {
+            <small>Informe o usuario.</small>
+          }
+        </div>
+
+        <div class="field">
+          <label for="ds_senha">Senha</label>
+          <p-password
+            inputId="ds_senha"
+            formControlName="ds_senha"
+            [feedback]="false"
+            [toggleMask]="true"
+            styleClass="w-full"
+            inputStyleClass="w-full"
+            autocomplete="current-password"
+            [class.ng-invalid]="campoInvalido('ds_senha')"
+          />
+          @if (campoInvalido('ds_senha')) {
+            <small>Informe a senha.</small>
+          }
+        </div>
+
+        <p-button
+          type="submit"
+          label="Acessar"
+          icon="pi pi-sign-in"
+          [loading]="carregando"
+          styleClass="w-full"
+        />
+      </form>
+    </p-card>
+  </div>
+</section>

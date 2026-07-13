@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Router, RouterOutlet } from '@angular/router';
 import { Navbar } from './shared/navbar/navbar';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToastModule } from 'primeng/toast';
@@ -10,4 +10,10 @@ import { ToastModule } from 'primeng/toast';
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
-export class App {}
+export class App {
+  constructor(public router: Router) {}
+
+  get isLoginPage(): boolean {
+    return this.router.url.startsWith('/login');
+  }
+}
