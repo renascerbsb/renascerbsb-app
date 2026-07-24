@@ -1,0 +1,391 @@
+@if (modo === 'detalhes' && trajetoria) {
+  <header class="section-header">
+    <div>
+      <h2>{{ trajetoria.ds_nome }}</h2>
+      <p>Versão {{ trajetoria.nr_versao }} • Modelo global e reutilizável</p>
+    </div>
+    <div class="section-actions">
+       <p-button
+        label="Cancelar"
+        icon="pi pi-times"
+        severity="secondary"
+        [outlined]="true"
+        (onClick)="cancelar.emit()"
+      />
+      <p-button
+        label="Duplicar"
+        icon="pi pi-copy"
+        severity="secondary"
+        [outlined]="true"
+        (onClick)="duplicar.emit(trajetoria)"
+      />
+      <p-button label="Editar" icon="pi pi-pencil" (onClick)="editar.emit(trajetoria)" />
+    </div>
+  </header>
+
+  <div class="details-layout">
+    <article class="detail-card">
+      <header class="detail-head">
+        <div>
+          <h3>Linha do tempo da trajetória</h3>
+          <p>{{ trajetoria.ds_descricao || 'Sem descrição cadastrada.' }}</p>
+        </div>
+        <p-tag
+          [value]="trajetoria.st_ativo ? 'Ativa' : 'Inativa'"
+          [severity]="trajetoria.st_ativo ? 'success' : 'secondary'"
+          [rounded]="true"
+        />
+      </header>
+
+      <div class="timeline">
+        @for (etapa of etapasSelecionadas; track etapa.seq_trajetoria_etapa) {
+          <div class="timeline-item">
+            <span class="timeline-marker">
+              <i [class]="iconeTipoEtapa(etapa.seq_etapa_trajetoria)"></i>
+            </span>
+            <div class="timeline-card">
+              <div class="timeline-top">
+                <div>
+                  <h4>{{ etapa.nr_ordem }}. {{ etapa.ds_nome }}</h4>
+                  <p>{{ etapa.ds_descricao || 'Sem descrição cadastrada.' }}</p>
+                </div>
+                <p-tag
+                  [value]="nomeTipoEtapa(etapa.seq_etapa_trajetoria)"
+                  styleClass="trajectory-type-tag"
+                  [rounded]="true"
+                  [style.--trajectory-tag-color]="corTagTipoEtapa(etapa.seq_etapa_trajetoria)"
+                  [style.--trajectory-tag-text]="corTextoTagTipoEtapa(etapa.seq_etapa_trajetoria)"
+                />
+              </div>
+              <div class="timeline-meta">
+                <p-tag
+                  [value]="etapa.nr_prazo_dias !== null ? 'Até ' + etapa.nr_prazo_dias + ' dias' : 'Sem prazo'"
+                  icon="pi pi-clock"
+                  severity="warn"
+                  [rounded]="true"
+                />
+                <p-tag
+                  [value]="etapa.st_obrigatoria ? 'Obrigatória' : 'Opcional'"
+                  [severity]="etapa.st_obrigatoria ? 'contrast' : 'secondary'"
+                  [rounded]="true"
+                />
+                @if (etapa.st_permite_pular) {
+                  <p-tag value="Pode pular" severity="secondary" [rounded]="true" />
+                }
+                @if (etapa.st_exige_observacao) {
+                  <p-tag value="Exige observação" severity="secondary" [rounded]="true" />
+                }
+              </div>
+            </div>
+          </div>
+        } @empty {
+          <div class="empty-state compact">
+            <i class="pi pi-list-check"></i>
+            <strong>Nenhuma etapa ativa</strong>
+          </div>
+        }
+      </div>
+    </article>
+
+    <aside class="details-aside">
+      <section class="side-card">
+        <h3>Resumo do modelo</h3>
+        <dl class="info-list">
+          <div><dt>Situação</dt><dd>{{ trajetoria.st_ativo ? 'Ativa' : 'Inativa' }}</dd></div>
+          <div><dt>Versão</dt><dd>{{ trajetoria.nr_versao }}</dd></div>
+          <div><dt>Quantidade de etapas</dt><dd>{{ etapasSelecionadas.length }}</dd></div>
+          <div><dt>Etapas obrigatórias</dt><dd>{{ quantidadeObrigatorias }}</dd></div>
+          <div><dt>Prazo sugerido</dt><dd>{{ prazoSugerido !== null ? prazoSugerido + ' dias' : '-' }}</dd></div>
+          <div>
+            <dt>Última alteração</dt>
+            <dd>{{ (trajetoria.dh_alteracao || trajetoria.dh_inclusao) | date: 'dd/MM/yyyy' }}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="side-card audit-card">
+        <h3>Auditoria</h3>
+        <p>
+          <i class="pi pi-user"></i>
+          Incluída pelo usuário {{ trajetoria.ds_nome_usuario_inclusao }} em
+          {{ trajetoria.dh_inclusao | date: 'dd/MM/yyyy HH:mm' }}
+        </p>
+        @if (trajetoria.dh_alteracao && trajetoria.ds_nome_usuario_alteracao) {
+          <p>
+            <i class="pi pi-user-edit"></i>
+            Alterada pelo usuário {{ trajetoria.ds_nome_usuario_alteracao }} em
+            {{ trajetoria.dh_alteracao | date: 'dd/MM/yyyy HH:mm' }}
+          </p>
+        }
+      </section>
+
+      <section class="side-card">
+        <h3>Disponível para</h3>
+        <div class="branch-list details-branches">
+          @for (filial of filiaisDaTrajetoria(trajetoria); track filial.seq_filial) {
+            <span>
+              {{ filial.ds_nome }}
+              @if (filialEhPadrao(trajetoria, filial.seq_filial)) {
+                <i class="pi pi-star-fill" title="Trajetória padrão"></i>
+              }
+            </span>
+          } @empty {
+            <span>Sem filial vinculada</span>
+          }
+        </div>
+      </section>
+    </aside>
+  </div>
+} @else {
+  <header class="section-header">
+    <div>
+      <h2>{{ modoEdicao ? 'Editar trajetória' : 'Nova trajetória' }}</h2>
+      <p>Configure os dados gerais e organize a ordem sugerida das etapas.</p>
+    </div>
+    <div class="section-actions">
+      <p-button
+        label="Cancelar"
+        icon="pi pi-times"
+        severity="secondary"
+        [outlined]="true"
+        [disabled]="salvando"
+        (onClick)="cancelar.emit()"
+      />
+      <p-button
+        label="Salvar alterações"
+        icon="pi pi-check"
+        [loading]="salvando"
+        (onClick)="salvar()"
+      />
+    </div>
+  </header>
+
+  <div class="editor-layout">
+    <div class="editor-main">
+      <section class="form-card">
+        <h3>Dados gerais</h3>
+        <div class="form-grid">
+          <div class="field col-span-8">
+            <label for="nomeTrajetoria">Nome da trajetória *</label>
+            <input
+              id="nomeTrajetoria"
+              pInputText
+              maxlength="150"
+              [disabled]="modoEdicao"
+              [(ngModel)]="form.ds_nome"
+            />
+            @if (modoEdicao) {
+              <small class="field-help">O nome não pode ser alterado após o cadastro.</small>
+            }
+          </div>
+          <div class="field col-span-4">
+            <label for="versaoTrajetoria">Versão *</label>
+            <input
+              id="versaoTrajetoria"
+              pInputText
+              type="number"
+              min="1"
+              step="1"
+              [disabled]="modoEdicao"
+              [(ngModel)]="form.nr_versao"
+            />
+            @if (modoEdicao) {
+              <small class="field-help">Ao salvar, a versão avançará para {{ form.nr_versao + 1 }}.</small>
+            }
+          </div>
+          <div class="field col-span-12">
+            <label for="descricaoTrajetoria">Descrição</label>
+            <textarea
+              id="descricaoTrajetoria"
+              pTextarea
+              rows="4"
+              [(ngModel)]="form.ds_descricao"
+            ></textarea>
+          </div>
+          <div class="field col-span-6">
+            <label for="situacaoEditor">Situação</label>
+            <div class="switch-line">
+              <p-toggleswitch inputId="situacaoEditor" [(ngModel)]="form.st_ativo" />
+              <span>{{ form.st_ativo ? 'Trajetória ativa' : 'Trajetória inativa' }}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="form-card">
+        <h3>Disponibilidade por filial</h3>
+        <div class="form-grid">
+          <div class="field col-span-7">
+            <label for="filiaisEditor">Filiais disponíveis</label>
+            <p-multiselect
+              inputId="filiaisEditor"
+              [options]="filiaisOpcoes"
+              optionLabel="label"
+              optionValue="value"
+              display="chip"
+              placeholder="Selecione as filiais"
+              [filter]="true"
+              appendTo="body"
+              [(ngModel)]="filiaisSelecionadas"
+              (ngModelChange)="aoAlterarFiliais()"
+            />
+            <small class="field-help">A trajetória ficará disponível somente nas filiais selecionadas.</small>
+          </div>
+          <div class="field col-span-5">
+            <label for="filiaisPadraoEditor">Trajetória padrão em</label>
+            <p-multiselect
+              inputId="filiaisPadraoEditor"
+              [options]="filiaisPadraoOpcoes"
+              optionLabel="label"
+              optionValue="value"
+              display="chip"
+              placeholder="Nenhuma filial"
+              [disabled]="!filiaisSelecionadas.length"
+              appendTo="body"
+              [(ngModel)]="filiaisPadrao"
+            />
+            <small class="field-help">Substitui o padrão atual da filial ao salvar.</small>
+          </div>
+        </div>
+      </section>
+
+      <section class="form-card">
+        <header class="steps-header">
+          <div>
+            <h3>Etapas da trajetória</h3>
+            <p>Use as setas para organizar a ordem sugerida das etapas.</p>
+          </div>
+          <p-button
+            label="Adicionar etapa"
+            icon="pi pi-plus"
+            severity="secondary"
+            [outlined]="true"
+            (onClick)="adicionarEtapa()"
+          />
+        </header>
+
+        <div class="steps-editor">
+          @for (etapa of etapasEditor; track etapa.chave; let indice = $index) {
+            <article class="step-editor" [class.open]="etapa.expandida">
+              <header class="step-editor-head" (click)="etapa.expandida = !etapa.expandida">
+                <span class="step-number">{{ indice + 1 }}</span>
+                <div class="step-title">
+                  <strong>{{ etapa.ds_nome || 'Nova etapa' }}</strong>
+                  <small>{{ resumoEtapa(etapa) }}</small>
+                </div>
+                <div class="step-actions" (click)="$event.stopPropagation()">
+                  <p-button icon="pi pi-arrow-up" [rounded]="true" [text]="true" severity="secondary" [disabled]="indice === 0" (onClick)="moverEtapa(indice, -1)" ariaLabel="Mover etapa para cima" />
+                  <p-button icon="pi pi-arrow-down" [rounded]="true" [text]="true" severity="secondary" [disabled]="indice === etapasEditor.length - 1" (onClick)="moverEtapa(indice, 1)" ariaLabel="Mover etapa para baixo" />
+                  <p-button icon="pi pi-copy" [rounded]="true" [text]="true" severity="secondary" (onClick)="duplicarEtapa(indice)" ariaLabel="Duplicar etapa" />
+                  <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" (onClick)="removerEtapa(indice)" ariaLabel="Remover etapa" />
+                  <i class="pi" [class.pi-chevron-up]="etapa.expandida" [class.pi-chevron-down]="!etapa.expandida"></i>
+                </div>
+              </header>
+
+              @if (etapa.expandida) {
+                <div class="step-editor-body">
+                  <div class="form-grid">
+                    <div class="field col-span-8">
+                      <label [for]="'nomeEtapa' + etapa.chave">Nome da etapa *</label>
+                      <input [id]="'nomeEtapa' + etapa.chave" pInputText maxlength="150" [(ngModel)]="etapa.ds_nome" />
+                    </div>
+                    <div class="field col-span-4">
+                      <label [for]="'tipoEtapa' + etapa.chave">Tipo *</label>
+                      <p-select
+                        [inputId]="'tipoEtapa' + etapa.chave"
+                        [options]="tiposEtapaOpcoes"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="Selecione"
+                        appendTo="body"
+                        [(ngModel)]="etapa.seq_etapa_trajetoria"
+                      >
+                        <ng-template #selectedItem let-opcao>
+                          @if (opcao) {
+                            <div class="type-option">
+                              <span class="type-option-icon"><i [class]="opcao.icon"></i></span>
+                              <p-tag
+                                [value]="opcao.label"
+                                styleClass="trajectory-type-tag"
+                                [rounded]="true"
+                                [style.--trajectory-tag-color]="opcao.color"
+                                [style.--trajectory-tag-text]="opcao.textColor"
+                              />
+                            </div>
+                          }
+                        </ng-template>
+                        <ng-template #item let-opcao>
+                          <div class="type-option">
+                            <span class="type-option-icon"><i [class]="opcao.icon"></i></span>
+                            <p-tag
+                              [value]="opcao.label"
+                              styleClass="trajectory-type-tag"
+                              [rounded]="true"
+                              [style.--trajectory-tag-color]="opcao.color"
+                              [style.--trajectory-tag-text]="opcao.textColor"
+                            />
+                          </div>
+                        </ng-template>
+                      </p-select>
+                    </div>
+                    <div class="field col-span-12">
+                      <label [for]="'descricaoEtapa' + etapa.chave">Descrição</label>
+                      <textarea [id]="'descricaoEtapa' + etapa.chave" pTextarea rows="3" [(ngModel)]="etapa.ds_descricao"></textarea>
+                    </div>
+                    <div class="field col-span-3">
+                      <label [for]="'prazoEtapa' + etapa.chave">Prazo em dias</label>
+                      <input [id]="'prazoEtapa' + etapa.chave" pInputText type="number" min="0" [(ngModel)]="etapa.nr_prazo_dias" />
+                    </div>
+                    <div class="field col-span-3">
+                      <label [for]="'obrigatoriaEtapa' + etapa.chave">Obrigatória</label>
+                      <div class="switch-line">
+                        <p-toggleswitch [inputId]="'obrigatoriaEtapa' + etapa.chave" [(ngModel)]="etapa.st_obrigatoria" />
+                        <span>{{ etapa.st_obrigatoria ? 'Sim' : 'Não' }}</span>
+                      </div>
+                    </div>
+                    <div class="field col-span-3">
+                      <label [for]="'pularEtapa' + etapa.chave">Permite pular</label>
+                      <div class="switch-line">
+                        <p-toggleswitch [inputId]="'pularEtapa' + etapa.chave" [(ngModel)]="etapa.st_permite_pular" />
+                        <span>{{ etapa.st_permite_pular ? 'Sim' : 'Não' }}</span>
+                      </div>
+                    </div>
+                    <div class="field col-span-3">
+                      <label [for]="'observacaoEtapa' + etapa.chave">Exige observação</label>
+                      <div class="switch-line">
+                        <p-toggleswitch [inputId]="'observacaoEtapa' + etapa.chave" [(ngModel)]="etapa.st_exige_observacao" />
+                        <span>{{ etapa.st_exige_observacao ? 'Sim' : 'Não' }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              }
+            </article>
+          }
+        </div>
+      </section>
+    </div>
+
+    <aside class="preview-card">
+      <span class="preview-label">Prévia do modelo</span>
+      <h3>{{ form.ds_nome || 'Trajetória sem nome' }}</h3>
+      <p>{{ form.ds_descricao || 'Sem descrição.' }}</p>
+      <div class="preview-timeline">
+        @for (etapa of etapasEditor; track etapa.chave; let indice = $index) {
+          <div class="preview-row">
+            <span class="preview-dot"><i [class]="iconeTipoEtapa(etapa.seq_etapa_trajetoria)"></i></span>
+            <div>
+              <strong>{{ indice + 1 }}. {{ etapa.ds_nome || 'Etapa sem nome' }}</strong>
+              <small>{{ resumoEtapa(etapa) }}</small>
+            </div>
+          </div>
+        }
+      </div>
+    </aside>
+  </div>
+
+  <div class="editor-footer">
+    <p-button label="Cancelar" severity="secondary" [outlined]="true" [disabled]="salvando" (onClick)="cancelar.emit()" />
+    <p-button label="Salvar alterações" icon="pi pi-check" [loading]="salvando" (onClick)="salvar()" />
+  </div>
+}

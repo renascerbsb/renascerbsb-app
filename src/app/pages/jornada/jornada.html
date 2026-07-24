@@ -1,0 +1,830 @@
+<section class="app-page jornada-page jornada-feature">
+  <header class="page-header">
+    <div>
+      <h1 class="page-title">Jornada</h1>
+      <p class="page-subtitle">
+        Consulte todas as jornadas, acompanhe o progresso e organize os responsáveis.
+      </p>
+    </div>
+  </header>
+
+  <section class="kpi-grid" aria-label="Indicadores da Jornada">
+    <article class="kpi-card">
+      <div>
+        <div class="kpi-title-row">
+          <span>Novos visitantes</span
+          ><i
+            class="pi pi-info-circle"
+            pTooltip="Pessoas com uma nova origem registrada no período selecionado."
+          ></i>
+        </div>
+        <strong>{{ indicadores?.novos_visitantes ?? '—' }}</strong
+        ><b>Últimos {{ indicadores?.periodo_dias ?? 30 }} dias</b
+        ><small>Pessoas com uma nova origem registrada no período.</small>
+      </div>
+      <span class="kpi-icon"><i class="pi pi-user-plus"></i></span>
+    </article>
+    <article class="kpi-card">
+      <div>
+        <div class="kpi-title-row">
+          <span>Sem líder</span
+          ><i
+            class="pi pi-info-circle"
+            pTooltip="Pessoas vinculadas a alguma jornada que ainda não possuem líder."
+          ></i>
+        </div>
+        <strong>{{ carregando ? '—' : quantidadeSemLider }}</strong
+        ><b>Precisam de distribuição</b
+        ><small>Pessoas em jornada cuja liderança ainda não foi definida.</small>
+      </div>
+      <span class="kpi-icon"><i class="pi pi-user-minus"></i></span>
+    </article>
+    <article class="kpi-card">
+      <div>
+        <div class="kpi-title-row">
+          <span>Em acompanhamento</span
+          ><i
+            class="pi pi-info-circle"
+            pTooltip="Pessoas com jornada não iniciada, em andamento ou pausada."
+          ></i>
+        </div>
+        <strong>{{ indicadores?.pessoas_em_jornada ?? '—' }}</strong
+        ><b>Jornadas abertas</b><small>Pessoas que ainda possuem acompanhamento ativo.</small>
+      </div>
+      <span class="kpi-icon"><i class="pi pi-spinner"></i></span>
+    </article>
+    <article class="kpi-card">
+      <div>
+        <div class="kpi-title-row">
+          <span>Concluídas</span
+          ><i
+            class="pi pi-info-circle"
+            pTooltip="Jornadas concluídas conforme as regras de evolução das etapas."
+          ></i>
+        </div>
+        <strong>{{ indicadores?.jornadas_concluidas ?? '—' }}</strong
+        ><b>Jornadas encerradas</b><small>Acompanhamentos que chegaram à última etapa.</small>
+      </div>
+      <span class="kpi-icon"><i class="pi pi-check-circle"></i></span>
+    </article>
+    <article class="kpi-card overdue">
+      <div>
+        <div class="kpi-title-row">
+          <span>Pendências vencidas</span
+          ><i
+            class="pi pi-info-circle"
+            pTooltip="Etapas em andamento cujo prazo terminou antes da data atual."
+          ></i>
+        </div>
+        <strong>{{ indicadores?.pendencias_vencidas ?? '—' }}</strong
+        ><b>Precisam de atenção</b
+        ><small>Etapas em andamento que ultrapassaram o prazo configurado.</small>
+      </div>
+      <span class="kpi-icon"><i class="pi pi-clock"></i></span>
+    </article>
+  </section>
+
+  <p-card styleClass="filters-card">
+    <form class="filters-grid" (ngSubmit)="pesquisar()">
+      <div class="field">
+        <label for="buscaJornada">Pesquisar pessoa</label
+        ><input
+          id="buscaJornada"
+          pInputText
+          name="buscaJornada"
+          type="search"
+          placeholder="Nome ou telefone"
+          [(ngModel)]="filtro.busca"
+        />
+      </div>
+      <div class="field">
+        <label for="filialJornada">Filial</label
+        ><p-select
+          inputId="filialJornada"
+          name="filialJornada"
+          [options]="filiaisOpcoes"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Todas"
+          [showClear]="true"
+          [(ngModel)]="filtro.seqFilial"
+        />
+      </div>
+      <div class="field">
+        <label for="trajetoriaJornada">Jornada</label
+        ><p-select
+          inputId="trajetoriaJornada"
+          name="trajetoriaJornada"
+          [options]="trajetoriasOpcoes"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Todas"
+          [showClear]="true"
+          [(ngModel)]="filtro.seqTrajetoria"
+        />
+      </div>
+      <div class="field">
+        <label for="situacaoJornada">Situação da jornada</label
+        ><p-select
+          inputId="situacaoJornada"
+          name="situacaoJornada"
+          [options]="situacoes"
+          optionLabel="label"
+          optionValue="value"
+          [(ngModel)]="filtro.nuSituacao"
+        />
+      </div>
+      <div class="field">
+        <label for="liderancaJornada">Liderança</label
+        ><p-select
+          inputId="liderancaJornada"
+          name="liderancaJornada"
+          [options]="liderancas"
+          optionLabel="label"
+          optionValue="value"
+          [(ngModel)]="filtro.lideranca"
+        />
+      </div>
+      <div class="filter-actions">
+        <p-button
+          type="button"
+          icon="pi pi-filter-slash"
+          severity="secondary"
+          [outlined]="true"
+          pTooltip="Limpar filtros"
+          (onClick)="limparFiltros()"
+        /><p-button type="submit" label="Pesquisar" icon="pi pi-search" />
+      </div>
+    </form>
+  </p-card>
+
+  <p-card styleClass="journey-table-card">
+    <div class="table-toolbar">
+      <p-button
+        label="Definir líder"
+        icon="pi pi-users"
+        severity="secondary"
+        [outlined]="true"
+        [disabled]="!selecionadas.length"
+        (onClick)="abrirModalLider()"
+      />
+      <span class="selection-note">
+        @if (selecionadas.length) {
+          {{ pessoasSelecionadas.length }}
+          {{ pessoasSelecionadas.length === 1 ? 'pessoa selecionada' : 'pessoas selecionadas' }}
+        } @else {
+          Selecione pessoas para definir a liderança em lote.
+        }
+      </span>
+      <span class="toolbar-spacer"></span
+      ><small>A lista inclui jornadas em andamento e concluídas.</small>
+    </div>
+    @if (erroCarregamento) {
+      <div class="load-state error-state">
+        <i class="pi pi-exclamation-circle"></i><strong>{{ erroCarregamento }}</strong
+        ><p-button
+          label="Tentar novamente"
+          icon="pi pi-refresh"
+          [text]="true"
+          (onClick)="carregarDados()"
+        />
+      </div>
+    } @else {
+      <p-table
+        [value]="linhasFiltradas"
+        [(selection)]="selecionadas"
+        dataKey="pessoaTrajetoria.seq_pessoa_trajetoria"
+        [loading]="carregando"
+        [paginator]="true"
+        [rows]="10"
+        [rowsPerPageOptions]="[10, 20, 50]"
+        [showCurrentPageReport]="true"
+        currentPageReportTemplate="{first} a {last} de {totalRecords} jornadas"
+        sortMode="multiple"
+        responsiveLayout="scroll"
+        styleClass="p-datatable-sm jornada-table"
+      >
+        <ng-template pTemplate="header"
+          ><tr>
+            <th class="selection-cell"><p-tableHeaderCheckbox /></th>
+            <th pSortableColumn="pessoa.ds_nome">Pessoa <p-sortIcon field="pessoa.ds_nome" /></th>
+            <th pSortableColumn="trajetoria.ds_nome">
+              Jornada <p-sortIcon field="trajetoria.ds_nome" />
+            </th>
+            <th>Progresso</th>
+            <th pSortableColumn="pessoa.lider.ds_nome">
+              Líder <p-sortIcon field="pessoa.lider.ds_nome" />
+            </th>
+            <th>Próxima ação</th>
+            <th class="actions-cell">Ações</th>
+          </tr></ng-template
+        >
+        <ng-template pTemplate="body" let-linha>
+          <tr
+            [class.selected-row]="selecionadas.includes(linha)"
+            [class.no-leader-row]="!linha.pessoa.lider"
+          >
+            <td class="selection-cell"><p-tableCheckbox [value]="linha" /></td>
+            <td>
+              <div class="primary-cell">
+                <strong>{{ linha.pessoa.ds_nome }}</strong
+                ><small>{{ formatarTelefone(linha.pessoa) }}</small>
+                @if (linha.filial) {
+                  <small>{{ linha.filial.ds_nome }}</small>
+                }
+              </div>
+            </td>
+            <td>
+              <div class="primary-cell">
+                <strong>{{ linha.trajetoria.ds_nome }}</strong
+                ><p-tag
+                  [value]="nomeSituacao(linha.pessoaTrajetoria.nu_situacao)"
+                  [severity]="severidadeSituacao(linha.pessoaTrajetoria.nu_situacao)"
+                  [rounded]="true"
+                />
+              </div>
+            </td>
+            <td>
+              <div class="progress-dots">
+                @for (etapa of linha.etapas; track etapa.modelo.seq_trajetoria_etapa) {
+                  <span
+                    class="progress-dot"
+                    [class]="classeEtapa(etapa, linha)"
+                    [pTooltip]="tooltipEtapa(etapa)"
+                    [attr.aria-label]="tooltipEtapa(etapa)"
+                  ></span>
+                } @empty {
+                  <span class="muted">Sem etapas</span>
+                }
+              </div>
+            </td>
+            <td>
+              @if (linha.pessoa.lider) {
+                {{ linha.pessoa.lider.ds_nome }}
+              } @else {
+                <p-tag value="Sem líder" severity="danger" [rounded]="true" />
+              }
+            </td>
+            <td>
+              @if (jornadaEncerrada(linha)) {
+                <p-tag
+                  [value]="textoProximaAcao(linha)"
+                  [severity]="linha.pessoaTrajetoria.nu_situacao === 4 ? 'success' : 'danger'"
+                  [rounded]="true"
+                />
+              } @else {
+                {{ textoProximaAcao(linha) }}
+              }
+            </td>
+            <td>
+              <div class="row-actions">
+                <p-button
+                  icon="pi pi-search"
+                  [rounded]="true"
+                  [outlined]="true"
+                  severity="secondary"
+                  ariaLabel="Detalhar"
+                  pTooltip="Detalhar"
+                  (onClick)="abrirDetalhes(linha)"
+                /><p-button
+                  icon="pi pi-check"
+                  [rounded]="true"
+                  [outlined]="true"
+                  [ariaLabel]="
+                    jornadaEncerrada(linha) ? 'Consultar evolução' : 'Registrar evolução'
+                  "
+                  [pTooltip]="jornadaEncerrada(linha) ? 'Consultar evolução' : 'Registrar evolução'"
+                  [disabled]="!etapaParaEvolucao(linha)"
+                  (onClick)="abrirModalEvolucao(linha)"
+                />
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage"
+          ><tr>
+            <td colspan="7">
+              <div class="empty-state">
+                <i class="pi pi-map"></i><strong>Nenhuma jornada encontrada</strong
+                ><span>Ajuste os filtros para consultar outros acompanhamentos.</span>
+              </div>
+            </td>
+          </tr></ng-template
+        >
+      </p-table>
+    }
+  </p-card>
+</section>
+
+<p-drawer
+  [(visible)]="drawerVisivel"
+  position="right"
+  styleClass="journey-drawer jornada-feature"
+  [modal]="true"
+>
+  <ng-template #header
+    ><div class="drawer-title">
+      <small>Detalhes da jornada</small><strong>{{ linhaDetalhada?.pessoa?.ds_nome }}</strong>
+    </div></ng-template
+  >
+  @if (linhaDetalhada; as linha) {
+    <div class="drawer-tabs" role="tablist">
+      <button type="button" [class.active]="abaDrawer === 'resumo'" (click)="abaDrawer = 'resumo'">
+        Resumo
+      </button>
+      <button
+        type="button"
+        [class.active]="abaDrawer === 'jornada'"
+        (click)="abaDrawer = 'jornada'"
+      >
+        Jornada
+      </button>
+      <button
+        type="button"
+        [class.active]="abaDrawer === 'historico'"
+        (click)="abaDrawer = 'historico'"
+      >
+        Histórico
+      </button>
+      <button
+        type="button"
+        [class.active]="abaDrawer === 'lideranca'"
+        (click)="abaDrawer = 'lideranca'"
+      >
+        Liderança
+      </button>
+    </div>
+    @if (carregandoDetalhes && (abaDrawer === 'historico' || abaDrawer === 'lideranca')) {
+      <div class="load-state"><i class="pi pi-spin pi-spinner"></i> Carregando detalhes...</div>
+    } @else if (abaDrawer === 'resumo') {
+      <div class="summary-grid">
+        <div>
+          <small>Jornada</small><strong>{{ linha.trajetoria.ds_nome }}</strong>
+        </div>
+        <div>
+          <small>Situação</small
+          ><strong>{{ nomeSituacao(linha.pessoaTrajetoria.nu_situacao) }}</strong>
+        </div>
+        <div>
+          <small>Líder</small><strong>{{ linha.pessoa.lider?.ds_nome || 'Sem líder' }}</strong>
+        </div>
+        <div>
+          <small>Próxima ação</small><strong>{{ textoProximaAcao(linha) }}</strong>
+        </div>
+        <div>
+          <small>Início</small
+          ><strong>{{ linha.pessoaTrajetoria.dt_inicio | date: 'dd/MM/yyyy' : 'UTC' }}</strong>
+        </div>
+        <div>
+          <small>Conclusão</small
+          ><strong>{{
+            (linha.pessoaTrajetoria.dt_conclusao | date: 'dd/MM/yyyy' : 'UTC') || '-'
+          }}</strong>
+        </div>
+      </div>
+      @if (linha.pessoaTrajetoria.ds_observacao) {
+        <section class="detail-note">
+          <small>Observação da jornada</small>
+          <p>{{ linha.pessoaTrajetoria.ds_observacao }}</p>
+        </section>
+      }
+      <div class="drawer-actions">
+        <p-button
+          [label]="jornadaEncerrada(linha) ? 'Consultar evolução' : 'Registrar evolução'"
+          icon="pi pi-check"
+          [disabled]="!etapaParaEvolucao(linha)"
+          (onClick)="abrirModalEvolucao(linha)"
+        />
+      </div>
+    } @else if (abaDrawer === 'jornada') {
+      <div class="timeline">
+        @for (etapa of linha.etapas; track etapa.modelo.seq_trajetoria_etapa; let indice = $index) {
+          <div class="timeline-item">
+            <span class="timeline-dot" [class]="classeEtapa(etapa, linha)">
+              @if (classeEtapa(etapa, linha) === 'done') {
+                <i class="pi pi-check"></i>
+              } @else {
+                {{ indice + 1 }}
+              }
+            </span>
+            <div>
+              <strong>{{ etapa.modelo.ds_nome }}</strong
+              ><small>{{
+                etapa.acompanhamento
+                  ? nomeSituacao(etapa.acompanhamento.nu_situacao)
+                  : 'Sem acompanhamento'
+              }}</small>
+              @if (etapa.acompanhamento?.dt_conclusao) {
+                <small
+                  >Concluída em
+                  {{ etapa.acompanhamento?.dt_conclusao | date: 'dd/MM/yyyy' : 'UTC' }}</small
+                >
+              }
+            </div>
+          </div>
+        }
+      </div>
+    } @else if (abaDrawer === 'historico') {
+      <div class="timeline">
+        @for (item of historico; track item.seq_pessoa_trajetoria_etapa) {
+          <div class="history-card">
+            <div class="history-head">
+              <strong>{{ nomeEtapa(item.seq_trajetoria_etapa) }}</strong
+              ><p-tag
+                [value]="nomeSituacao(item.nu_situacao)"
+                [severity]="severidadeSituacao(item.nu_situacao)"
+                [rounded]="true"
+              />
+            </div>
+            <small
+              >Início: {{ (item.dt_inicio | date: 'dd/MM/yyyy' : 'UTC') || '-' }} · Conclusão:
+              {{ (item.dt_conclusao | date: 'dd/MM/yyyy' : 'UTC') || '-' }}</small
+            >
+            @if (item.ds_observacao) {
+              <p>{{ item.ds_observacao }}</p>
+            }
+            @if (item.ds_motivo_pulo) {
+              <p><b>Motivo do pulo:</b> {{ item.ds_motivo_pulo }}</p>
+            }
+            <small
+              >Incluída por {{ item.ds_nome_usuario_inclusao || '-' }} em
+              {{ item.dh_inclusao | date: 'dd/MM/yyyy HH:mm' }}</small
+            >
+            @if (item.dh_alteracao) {
+              <small
+                >Última alteração por {{ item.ds_nome_usuario_alteracao || '-' }} em
+                {{ item.dh_alteracao | date: 'dd/MM/yyyy HH:mm' }}</small
+              >
+            }
+          </div>
+        } @empty {
+          <div class="empty-state compact">
+            <i class="pi pi-history"></i><strong>Sem histórico</strong>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="leadership-list">
+        @for (item of historicoLideranca; track item.seq_pessoa_lider) {
+          <article>
+            <div>
+              <strong>{{ nomeLider(item.seq_lider) }}</strong
+              ><p-tag
+                [value]="item.st_ativo ? 'Atual' : 'Encerrada'"
+                [severity]="item.st_ativo ? 'success' : 'secondary'"
+                [rounded]="true"
+              />
+            </div>
+            <small
+              >Desde {{ item.dt_inicio | date: 'dd/MM/yyyy' : 'UTC' }}
+              @if (item.dt_fim) {
+                até {{ item.dt_fim | date: 'dd/MM/yyyy' : 'UTC' }}
+              }
+            </small>
+            @if (item.ds_observacao) {
+              <p>{{ item.ds_observacao }}</p>
+            }
+          </article>
+        } @empty {
+          <div class="empty-state compact">
+            <i class="pi pi-users"></i><strong>Nenhuma liderança registrada</strong>
+          </div>
+        }
+      </div>
+    }
+  }
+</p-drawer>
+
+<p-dialog
+  header="Definir líder"
+  styleClass="journey-dialog jornada-feature"
+  [(visible)]="modalLiderVisivel"
+  [modal]="true"
+  [draggable]="false"
+  [style]="{ width: 'min(620px, 95vw)' }"
+>
+  <div class="dialog-content">
+    <div class="field">
+      <label>Pessoas selecionadas</label>
+      <div class="person-chips">
+        @for (pessoa of pessoasSelecionadas; track pessoa.seq_pessoa) {
+          <span>{{ pessoa.ds_nome }}</span>
+        }
+      </div>
+    </div>
+    <div class="field">
+      <label for="novoLider">Novo líder *</label
+      ><p-select
+        inputId="novoLider"
+        [options]="lideresOpcoes"
+        optionLabel="ds_nome"
+        optionValue="seq_pessoa"
+        placeholder="Selecione"
+        [filter]="true"
+        appendTo="body"
+        [(ngModel)]="seqNovoLider"
+      />
+    </div>
+    <div class="field">
+      <label for="dataLideranca">Data de início *</label
+      ><input id="dataLideranca" pInputText type="date" [(ngModel)]="dataLideranca" />
+    </div>
+    <div class="field">
+      <label for="observacaoLideranca">Observação</label
+      ><textarea
+        id="observacaoLideranca"
+        pTextarea
+        rows="3"
+        [(ngModel)]="observacaoLideranca"
+      ></textarea>
+    </div>
+  </div>
+  <ng-template #footer
+    ><p-button
+      label="Cancelar"
+      severity="secondary"
+      [outlined]="true"
+      [disabled]="salvandoLider"
+      (onClick)="modalLiderVisivel = false" /><p-button
+      label="Confirmar"
+      icon="pi pi-check"
+      [loading]="salvandoLider"
+      (onClick)="definirLider()"
+  /></ng-template>
+</p-dialog>
+
+<p-dialog
+  header="Registrar evolução"
+  styleClass="journey-dialog jornada-feature"
+  [(visible)]="modalEvolucaoVisivel"
+  [modal]="true"
+  [draggable]="false"
+  [closable]="!salvandoEvolucao"
+  [closeOnEscape]="!salvandoEvolucao"
+  [dismissableMask]="!salvandoEvolucao"
+  [style]="{ width: 'min(860px, 95vw)' }"
+>
+  @if (linhaEvolucao && etapaEvolucao) {
+    <div class="dialog-content">
+      @if (modoConsultaEvolucao) {
+        <div class="consultation-note">
+          <i class="pi pi-lock"></i>
+          <span>Jornada encerrada. Os dados estão disponíveis somente para consulta.</span>
+        </div>
+      }
+
+      <div class="summary-grid evolution-summary evolution-header">
+        <div>
+          <small>Pessoa</small><strong>{{ linhaEvolucao.pessoa.ds_nome }}</strong>
+        </div>
+        <div>
+          <small>Jornada</small><strong>{{ linhaEvolucao.trajetoria.ds_nome }}</strong>
+        </div>
+        <div>
+          <small>Etapa atual</small><strong>{{ etapaEvolucao.modelo.ds_nome }}</strong>
+        </div>
+      </div>
+
+      <section
+        class="evolution-section journey-status-section"
+        [class.pending-change]="jornadaFoiAlterada"
+      >
+        <div class="section-heading">
+          <div>
+            <small>Registro geral</small>
+            <h3>Situação da jornada</h3>
+          </div>
+          <p-tag
+            [value]="nomeSituacao(linhaEvolucao.pessoaTrajetoria.nu_situacao)"
+            [severity]="severidadeSituacao(linhaEvolucao.pessoaTrajetoria.nu_situacao)"
+            [rounded]="true"
+          />
+        </div>
+        <div class="field">
+          <label for="situacaoGeralJornada">Nova situação</label>
+          <p-select
+            inputId="situacaoGeralJornada"
+            [options]="situacoesJornadaEvolucao"
+            optionLabel="label"
+            optionValue="value"
+            optionDisabled="disabled"
+            appendTo="body"
+            [disabled]="modoConsultaEvolucao || salvandoEvolucao"
+            [(ngModel)]="situacaoJornadaEvolucao"
+          />
+          @if (jornadaFoiAlterada) {
+            <small class="pending-label"><i class="pi pi-pencil"></i> Alteração pendente</small>
+          }
+          <small class="field-help">
+            A conclusão manual depende de validação específica do backend e está indisponível.
+          </small>
+        </div>
+        @if (situacaoJornadaEvolucao === 4 || situacaoJornadaEvolucao === 5) {
+          <div class="field compact-field">
+            <label for="dataConclusaoJornada">Data de conclusão da jornada *</label>
+            <input
+              id="dataConclusaoJornada"
+              pInputText
+              type="date"
+              [disabled]="modoConsultaEvolucao || salvandoEvolucao"
+              [(ngModel)]="dataConclusaoJornadaEvolucao"
+            />
+          </div>
+        }
+      </section>
+
+      <section
+        class="evolution-section stage-evolution-section"
+        [class.pending-change]="etapaFoiAlterada"
+      >
+        <div class="section-heading">
+          <div>
+            <small>Registro principal</small>
+            <h3>Evolução da etapa</h3>
+          </div>
+          <p-tag
+            [value]="nomeSituacao(etapaEvolucao.acompanhamento!.nu_situacao)"
+            [severity]="severidadeSituacao(etapaEvolucao.acompanhamento!.nu_situacao)"
+            [rounded]="true"
+          />
+        </div>
+
+        <div class="stage-metadata">
+          <span><b>Etapa:</b> {{ etapaEvolucao.modelo.ds_nome }}</span>
+          <span><b>Ordem:</b> {{ etapaEvolucao.modelo.nr_ordem }}</span>
+          <span>
+            <b>Obrigatória:</b> {{ etapaEvolucao.modelo.st_obrigatoria ? 'Sim' : 'Não' }}
+          </span>
+        </div>
+
+        <div class="field">
+          <label for="situacaoEtapaAtual">Situação da etapa *</label>
+          <p-select
+            inputId="situacaoEtapaAtual"
+            [options]="situacoesEtapaEvolucao"
+            optionLabel="label"
+            optionValue="value"
+            optionDisabled="disabled"
+            appendTo="body"
+            [disabled]="modoConsultaEvolucao || salvandoEvolucao"
+            [(ngModel)]="situacaoEtapaEvolucao"
+          />
+          @if (etapaFoiAlterada) {
+            <small class="pending-label"><i class="pi pi-pencil"></i> Alteração pendente</small>
+          }
+          @if (situacaoEtapaEvolucao === 5) {
+            <small class="field-help warning-help">
+              Pelo contrato atual, cancelar a etapa também encerra a jornada como cancelada.
+            </small>
+          }
+        </div>
+
+        <div class="dates-grid">
+          <div class="field">
+            <label for="dataInicioEtapa">Data de início</label>
+            <input
+              id="dataInicioEtapa"
+              pInputText
+              type="date"
+              [disabled]="!podeEditarDataInicioEtapa"
+              [(ngModel)]="dataInicioEtapaEvolucao"
+            />
+            @if (
+              situacaoEtapaEvolucao !== etapaEvolucao.acompanhamento!.nu_situacao &&
+              situacaoEtapaEvolucao !== 2
+            ) {
+              <small class="field-help">
+                Nesta transição, o backend preserva o início existente; ao concluir sem início,
+                utiliza a data de conclusão.
+              </small>
+            }
+          </div>
+          <div class="field">
+            <label for="dataConclusaoEtapa">
+              Data de conclusão
+              @if (
+                situacaoEtapaEvolucao === 4 ||
+                situacaoEtapaEvolucao === 5 ||
+                situacaoEtapaEvolucao === 6
+              ) {
+                *
+              }
+            </label>
+            <input
+              id="dataConclusaoEtapa"
+              pInputText
+              type="date"
+              [disabled]="
+                modoConsultaEvolucao ||
+                salvandoEvolucao ||
+                situacaoEtapaEvolucao === 1 ||
+                situacaoEtapaEvolucao === 2 ||
+                situacaoEtapaEvolucao === 3
+              "
+              [(ngModel)]="dataConclusaoEtapaEvolucao"
+            />
+          </div>
+        </div>
+
+        @if (situacaoEtapaEvolucao === 6) {
+          <div class="field">
+            <label for="motivoPulo">Motivo do pulo *</label>
+            <textarea
+              id="motivoPulo"
+              pTextarea
+              rows="3"
+              [disabled]="modoConsultaEvolucao || salvandoEvolucao"
+              [(ngModel)]="motivoPulo"
+            ></textarea>
+          </div>
+        }
+
+        <div class="field">
+          <label for="observacaoEvolucao">
+            Observação
+            @if (
+              etapaEvolucao.modelo.st_exige_observacao &&
+              (situacaoEtapaEvolucao === 4 || situacaoEtapaEvolucao === 6)
+            ) {
+              *
+            }
+          </label>
+          <textarea
+            id="observacaoEvolucao"
+            pTextarea
+            rows="4"
+            placeholder="Descreva o que ocorreu nesta etapa"
+            [disabled]="modoConsultaEvolucao || salvandoEvolucao"
+            [(ngModel)]="observacaoEvolucao"
+          ></textarea>
+        </div>
+      </section>
+
+      <section class="evolution-section timeline-section">
+        <div class="section-heading">
+          <div>
+            <small>Somente consulta</small>
+            <h3>Etapas da jornada</h3>
+          </div>
+        </div>
+        <div class="timeline compact-timeline">
+          @for (
+            etapa of linhaEvolucao.etapas;
+            track etapa.modelo.seq_trajetoria_etapa;
+            let indice = $index
+          ) {
+            <div class="timeline-item" [class.editing-stage]="etapa === etapaEvolucao">
+              <span class="timeline-dot" [class]="classeEtapa(etapa, linhaEvolucao)">
+                @if (classeEtapa(etapa, linhaEvolucao) === 'done') {
+                  <i class="pi pi-check"></i>
+                } @else {
+                  {{ indice + 1 }}
+                }
+              </span>
+              <div>
+                <strong>{{ etapa.modelo.ds_nome }}</strong>
+                <small>
+                  {{
+                    etapa.acompanhamento
+                      ? nomeSituacao(etapa.acompanhamento.nu_situacao)
+                      : 'Sem acompanhamento'
+                  }}
+                </small>
+                <small>
+                  Início:
+                  {{ (etapa.acompanhamento?.dt_inicio | date: 'dd/MM/yyyy' : 'UTC') || '-' }}
+                  · Conclusão:
+                  {{ (etapa.acompanhamento?.dt_conclusao | date: 'dd/MM/yyyy' : 'UTC') || '-' }}
+                </small>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+
+      @if (erroEvolucao) {
+        <div class="evolution-error" role="alert">
+          <i class="pi pi-exclamation-circle"></i><span>{{ erroEvolucao }}</span>
+        </div>
+      }
+    </div>
+  }
+  <ng-template #footer>
+    <p-button
+      [label]="modoConsultaEvolucao ? 'Fechar' : 'Cancelar'"
+      severity="secondary"
+      [outlined]="true"
+      [disabled]="salvandoEvolucao"
+      (onClick)="modalEvolucaoVisivel = false"
+    />
+    @if (!modoConsultaEvolucao) {
+      <p-button
+        label="Registrar evolução"
+        icon="pi pi-check"
+        [loading]="salvandoEvolucao"
+        [disabled]="salvandoEvolucao || (!etapaFoiAlterada && !jornadaFoiAlterada)"
+        (onClick)="registrarEvolucao()"
+      />
+    }
+  </ng-template>
+</p-dialog>

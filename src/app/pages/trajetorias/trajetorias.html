@@ -1,0 +1,117 @@
+<section class="app-page trajetorias-page">
+  <header class="page-header main-header">
+    <div>
+      <h1 class="page-title">Trajetórias</h1>
+      <p class="page-subtitle">Crie caminhos flexíveis de acompanhamento e organize suas etapas.</p>
+    </div>
+    @if (tela !== 'editor') {
+      <p-button label="Nova trajetória" icon="pi pi-plus" (onClick)="novaTrajetoria()" />
+    }
+  </header>
+
+  <app-trajetorias-menu
+    [tela]="tela"
+    [possuiTrajetoriaSelecionada]="!!trajetoriaSelecionada"
+    (navegar)="navegar($event)"
+  />
+
+  @if (carregando) {
+    <p-card styleClass="state-card">
+      <div class="loading-state"><i class="pi pi-spin pi-spinner"></i> Carregando trajetórias...</div>
+    </p-card>
+  } @else if (tela === 'lista') {
+    <p-card styleClass="filters-card">
+      <div class="filter-grid">
+        <div class="field search-field">
+          <label for="buscaTrajetoria">Nome da trajetória</label>
+          <div class="search-input">
+            <i class="pi pi-search"></i>
+            <input id="buscaTrajetoria" pInputText type="search" placeholder="Pesquisar trajetória..." [(ngModel)]="busca" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="situacaoTrajetoria">Situação</label>
+          <p-select inputId="situacaoTrajetoria" [options]="situacoes" optionLabel="label" optionValue="value" [(ngModel)]="situacao" />
+        </div>
+        <div class="field">
+          <label for="filialTrajetoria">Aplicação</label>
+          <p-select inputId="filialTrajetoria" [options]="filiaisOpcoes" optionLabel="label" optionValue="value" placeholder="Todas" [showClear]="true" [(ngModel)]="filialFiltro" />
+        </div>
+        <p-button label="Limpar" icon="pi pi-filter-slash" severity="secondary" [outlined]="true" (onClick)="limparFiltros()" />
+      </div>
+    </p-card>
+
+    @if (trajetoriasFiltradas.length) {
+      <div class="trajectory-grid">
+        @for (trajetoria of trajetoriasFiltradas; track trajetoria.seq_trajetoria) {
+          <article class="trajectory-card">
+            <header class="trajectory-card-header">
+              <div>
+                <h2>{{ trajetoria.ds_nome }}</h2>
+                <p>{{ trajetoria.ds_descricao || 'Sem descrição cadastrada.' }}</p>
+              </div>
+              <p-tag [value]="trajetoria.st_ativo ? 'Ativa' : 'Inativa'" [severity]="trajetoria.st_ativo ? 'success' : 'secondary'" [rounded]="true" />
+            </header>
+            <div class="summary-row">
+              <div class="summary-box"><span>Etapas</span><strong>{{ quantidadeEtapas(trajetoria) }}</strong></div>
+              <div class="summary-box"><span>Em andamento</span><strong>{{ 10 }} pessoas</strong> </div>
+              <div class="summary-box"><span>Versão</span><strong>{{ trajetoria.nr_versao }}</strong></div>
+            </div>
+            <div class="branch-list">
+              @for (filial of filiaisDaTrajetoria(trajetoria).slice(0, 3); track filial.seq_filial) {
+                <span>{{ filial.ds_nome }}</span>
+              }
+              @if (filiaisDaTrajetoria(trajetoria).length > 3) {
+                <span>+{{ filiaisDaTrajetoria(trajetoria).length - 3 }}</span>
+              } @else if (!filiaisDaTrajetoria(trajetoria).length) {
+                <span>Sem filial vinculada</span>
+              }
+            </div>
+            <div class="mini-steps" aria-label="Prévia das etapas">
+              @for (etapa of etapasDaTrajetoria(trajetoria); track etapa.seq_trajetoria_etapa) {
+                <span
+                  class="mini-step"
+                  [pTooltip]="etapa.ds_nome"
+                  tooltipPosition="top"
+                  [showDelay]="150"
+                  [attr.aria-label]="'Etapa ' + etapa.nr_ordem + ': ' + etapa.ds_nome"
+                >{{ etapa.nr_ordem }}</span>
+                @if (!$last) { <span class="mini-line"></span> }
+              }
+              @if (!quantidadeEtapas(trajetoria)) { <span class="no-steps">Nenhuma etapa ativa</span> }
+            </div>
+            <footer class="card-footer">
+              <small>Atualizada em {{ (trajetoria.dh_alteracao || trajetoria.dh_inclusao) | date: 'dd/MM/yyyy' }}</small>
+              <div class="card-actions">
+                <p-button label="Visualizar" icon="pi pi-eye" [text]="true" (onClick)="visualizar(trajetoria)" />
+                <p-button label="Editar" icon="pi pi-pencil" [text]="true" (onClick)="editar(trajetoria)" />
+              </div>
+            </footer>
+          </article>
+        }
+      </div>
+    } @else {
+      <p-card styleClass="state-card">
+        <div class="empty-state">
+          <i class="pi pi-map"></i>
+          <strong>Nenhuma trajetória encontrada</strong>
+          <span>Ajuste os filtros ou cadastre um novo modelo.</span>
+        </div>
+      </p-card>
+    }
+  } @else {
+    <app-form-trajetorias
+      [modo]="tela === 'detalhes' ? 'detalhes' : 'editor'"
+      [trajetoria]="trajetoriaSelecionada"
+      [trajetoriaDuplicada]="trajetoriaDuplicada"
+      [etapas]="etapas"
+      [tiposEtapa]="tiposEtapa"
+      [filiais]="filiais"
+      [filiaisTrajetorias]="filiaisTrajetorias"
+      (editar)="editar($event)"
+      (duplicar)="duplicar($event)"
+      (cancelar)="cancelarFormulario()"
+      (salvo)="aoSalvar($event)"
+    />
+  }
+</section>

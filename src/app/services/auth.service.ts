@@ -1,5 +1,5 @@
 import { isPlatformBrowser } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Inject, Injectable, PLATFORM_ID } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
@@ -38,8 +38,16 @@ export class AuthService {
   ) {}
 
   login(credenciais: LoginRequest): Observable<LoginResponse> {
+    const body = new HttpParams()
+      .set('username', credenciais.ds_usuario)
+      .set('password', credenciais.ds_senha);
+
     return this.http
-      .post<LoginResponse>(this.apiUrl, credenciais)
+      .post<LoginResponse>(this.apiUrl, body.toString(), {
+        headers: new HttpHeaders({
+          'Content-Type': 'application/x-www-form-urlencoded',
+        }),
+      })
       .pipe(tap((resposta) => this.salvarSessao(resposta)));
   }
 

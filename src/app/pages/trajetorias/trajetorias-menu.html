@@ -1,0 +1,19 @@
+<nav class="view-switch" aria-label="Navegação da página de trajetórias">
+  <button type="button" [class.active]="tela === 'lista'" (click)="navegar.emit('lista')">
+    <i class="pi pi-list"></i>
+    Modelos
+  </button>
+  <button
+    type="button"
+    [class.active]="tela === 'detalhes'"
+    [disabled]="!possuiTrajetoriaSelecionada"
+    (click)="navegar.emit('detalhes')"
+  >
+    <i class="pi pi-eye"></i>
+    Visualização
+  </button>
+  <button type="button" [class.active]="tela === 'editor'" (click)="navegar.emit('editor')">
+    <i class="pi pi-pencil"></i>
+    Cadastro/Edição
+  </button>
+</nav>

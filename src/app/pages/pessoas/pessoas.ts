@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
-import { Pessoa, PessoaFiltros, PessoaService } from '../../services/pessoa.service'
+import { Pessoa, PessoaFiltros, PessoaService } from '../../services/pessoa.service';
 import { Cidade, CidadeService } from '../../services/cidade.service';
 import { Filial, FilialService } from '../../services/filial.service';
 import { FaixaEtaria, FaixaEtariaService } from '../../services/faixa-etaria.service';
@@ -17,6 +18,18 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TelefoneMaskDirective } from '../../shared/directives/telefone-mask.directive';
 import { MensagensApp } from '../../shared/constants/mensagens.constants';
+import { DialogModule } from 'primeng/dialog';
+import { MessageModule } from 'primeng/message';
+import { TextareaModule } from 'primeng/textarea';
+import { MessageService } from 'primeng/api';
+import { forkJoin } from 'rxjs';
+import { finalize } from 'rxjs/operators';
+import {
+  PessoaElegivelTrajetoria,
+  PessoaTrajetoriaService,
+} from '../../services/pessoa-trajetoria.service';
+import { FilialTrajetoriaService } from '../../services/filial-trajetoria.service';
+import { Trajetoria, TrajetoriaService } from '../../services/trajetoria.service';
 
 type FiltroValor = string | number | null;
 
@@ -31,16 +44,18 @@ type FiltroValor = string | number | null;
     ButtonModule,
     CardModule,
     ChipModule,
+    DialogModule,
     InputTextModule,
+    MessageModule,
     MultiSelectModule,
     SelectModule,
     TableModule,
     TagModule,
-    TelefoneMaskDirective
+    TextareaModule,
+    TelefoneMaskDirective,
   ],
 })
 export class Pessoas implements OnInit {
-
   pessoas: Pessoa[] = [];
   cidades: Cidade[] = [];
   filiais: Filial[] = [];
@@ -49,15 +64,30 @@ export class Pessoas implements OnInit {
   ministerios: Ministerio[] = [];
   lideres: Pessoa[] = [];
   pessoasFiltradas: Pessoa[] = [];
+  jornadasDisponiveis: Trajetoria[] = [];
+  pessoasElegiveis: PessoaElegivelTrajetoria[] = [];
+  pessoasSelecionadas: PessoaElegivelTrajetoria[] = [];
+  modalJornadaVisivel = false;
+  carregandoFiliais = false;
+  carregandoJornadas = false;
+  carregandoPessoasElegiveis = false;
+  processandoJornada = false;
+  erroFiliais = '';
+  erroJornadas = '';
+  erroPessoasElegiveis = '';
+  erroSalvarJornada = '';
+  pesquisaNomeJornada = '';
+  pesquisaTelefoneJornada = '';
+  jornadaEmLote = this.criarFormularioJornada();
   situacoes = [
     { label: 'Ativos', value: 'true' },
     { label: 'Inativos', value: 'false' },
-    { label: 'Todos', value: '' }
+    { label: 'Todos', value: '' },
   ];
   generos = [
     { label: 'Todos', value: '' },
     { label: 'Mulheres', value: 'F' },
-    { label: 'Homens', value: 'M' }
+    { label: 'Homens', value: 'M' },
   ];
 
   filtro = {
@@ -71,7 +101,7 @@ export class Pessoas implements OnInit {
     seqVinculo: null as FiltroValor,
     seqLideres: [] as number[],
     stAtivo: 'true',
-    seqMinisterios: [] as number[]
+    seqMinisterios: [] as number[],
   };
 
   constructor(
@@ -80,11 +110,56 @@ export class Pessoas implements OnInit {
     private filialService: FilialService,
     private faixaEtariaService: FaixaEtariaService,
     private vinculoService: VinculoService,
-    private ministerioService: MinisterioService
+    private ministerioService: MinisterioService,
+    private filialTrajetoriaService: FilialTrajetoriaService,
+    private trajetoriaService: TrajetoriaService,
+    private pessoaTrajetoriaService: PessoaTrajetoriaService,
+    private messageService: MessageService,
   ) {}
 
-  ngOnInit(): void {
+  get filiaisAtivas(): Filial[] {
+    return this.filiais.filter((filial) => filial.st_ativo);
+  }
 
+  get pessoasElegiveisFiltradas(): PessoaElegivelTrajetoria[] {
+    const nome = this.normalizarTexto(this.pesquisaNomeJornada);
+    const telefone = this.pesquisaTelefoneJornada.replace(/\D/g, '');
+
+    return this.pessoasElegiveis.filter((pessoa) => {
+      const correspondeNome = !nome || this.normalizarTexto(pessoa.ds_nome).includes(nome);
+      const correspondeTelefone =
+        !telefone || (pessoa.nr_telefone ?? '').replace(/\D/g, '').includes(telefone);
+
+      return correspondeNome && correspondeTelefone;
+    });
+  }
+
+  get textoQuantidadeSelecionada(): string {
+    const quantidade = this.pessoasSelecionadas.length;
+
+    if (quantidade === 0) {
+      return 'Nenhuma pessoa selecionada';
+    }
+
+    return `${quantidade} ${quantidade === 1 ? 'pessoa selecionada' : 'pessoas selecionadas'}`;
+  }
+
+  get labelConfirmarJornada(): string {
+    const quantidade = this.pessoasSelecionadas.length;
+    return `Iniciar jornada para ${quantidade} ${quantidade === 1 ? 'pessoa' : 'pessoas'}`;
+  }
+
+  get podeConfirmarJornada(): boolean {
+    return !!(
+      this.jornadaEmLote.seqFilial &&
+      this.jornadaEmLote.seqTrajetoria &&
+      this.pessoasSelecionadas.length &&
+      this.jornadaEmLote.dtInicio &&
+      !this.processandoJornada
+    );
+  }
+
+  ngOnInit(): void {
     this.carregarPessoas();
     this.carregarCidades();
     this.carregarFiliais();
@@ -95,14 +170,14 @@ export class Pessoas implements OnInit {
   }
 
   carregarPessoas(): void {
-      this.pessoaService.listar(this.montarFiltros()).subscribe({
-        next: (dados) => {
-          this.pessoas = dados;
-        },
-        error: (erro) => {
-          console.error(MensagensApp.Pessoas_Error_BUSCAR_PESSOAS, erro);
-        }
-      });
+    this.pessoaService.listar(this.montarFiltros()).subscribe({
+      next: (dados) => {
+        this.pessoas = dados;
+      },
+      error: (erro) => {
+        console.error(MensagensApp.Pessoas_Error_BUSCAR_PESSOAS, erro);
+      },
+    });
   }
 
   pesquisar(): void {
@@ -131,7 +206,7 @@ export class Pessoas implements OnInit {
       seqVinculo: null,
       seqLideres: [],
       stAtivo: 'true',
-      seqMinisterios: []
+      seqMinisterios: [],
     };
 
     this.carregarPessoas();
@@ -140,59 +215,237 @@ export class Pessoas implements OnInit {
   carregarCidades(): void {
     this.cidadeService.listar().subscribe({
       next: (dados) => {
-        this.cidades = dados.map(cidade => ({
+        this.cidades = dados.map((cidade) => ({
           ...cidade,
-          ds_nome: `${cidade.ds_nome} - ${cidade.uf}`
+          ds_nome: `${cidade.ds_nome} - ${cidade.uf}`,
         }));
       },
       error: (erro) => {
         console.error(MensagensApp.Pessoas_Error_BUSCAR_CIDADES, erro);
-      }
-
+      },
     });
   }
 
   carregarFiliais(): void {
-      this.filialService.listar().subscribe({
-        next: (dados) => {
-          this.filiais = dados;
+    this.carregandoFiliais = true;
+    this.erroFiliais = '';
+    this.filialService.listar().subscribe({
+      next: (dados) => {
+        this.filiais = dados;
+        this.carregandoFiliais = false;
+      },
+      error: (erro) => {
+        this.carregandoFiliais = false;
+        this.erroFiliais = 'Não foi possível carregar as filiais.';
+        console.error(MensagensApp.Pessoas_Error_BUSCAR_FILIAIS, erro);
+      },
+    });
+  }
+
+  abrirModalJornada(): void {
+    this.limparModalJornada();
+    this.modalJornadaVisivel = true;
+  }
+
+  aoAlterarFilial(seqFilial: number | null): void {
+    this.jornadaEmLote.seqFilial = seqFilial;
+    this.jornadaEmLote.seqTrajetoria = null;
+    this.jornadasDisponiveis = [];
+    this.limparPessoasElegiveis();
+    this.carregandoJornadas = false;
+    this.erroJornadas = '';
+
+    if (!seqFilial) {
+      return;
+    }
+
+    const filialSolicitada = seqFilial;
+    this.carregandoJornadas = true;
+
+    forkJoin({
+      relacionamentos: this.filialTrajetoriaService.listar({
+        seq_filial: filialSolicitada,
+        st_ativo: true,
+      }),
+      trajetorias: this.trajetoriaService.listar({ st_ativo: true }),
+    })
+      .pipe(
+        finalize(() => {
+          if (this.jornadaEmLote.seqFilial === filialSolicitada) {
+            this.carregandoJornadas = false;
+          }
+        }),
+      )
+      .subscribe({
+        next: ({ relacionamentos, trajetorias }) => {
+          if (this.jornadaEmLote.seqFilial !== filialSolicitada) {
+            return;
+          }
+
+          const idsDisponiveis = new Set(
+            relacionamentos.map((relacionamento) => relacionamento.seq_trajetoria),
+          );
+          this.jornadasDisponiveis = trajetorias.filter((trajetoria) =>
+            idsDisponiveis.has(trajetoria.seq_trajetoria),
+          );
         },
         error: (erro) => {
-          console.error(MensagensApp.Pessoas_Error_BUSCAR_FILIAIS, erro);
-        }
+          if (this.jornadaEmLote.seqFilial === filialSolicitada) {
+            this.erroJornadas = 'Não foi possível carregar as jornadas desta filial.';
+          }
+          console.error('Erro ao buscar jornadas da filial', erro);
+        },
       });
+  }
+
+  aoAlterarJornada(seqTrajetoria: number | null): void {
+    this.jornadaEmLote.seqTrajetoria = seqTrajetoria;
+    this.limparPessoasElegiveis();
+
+    const seqFilial = this.jornadaEmLote.seqFilial;
+    if (!seqFilial || !seqTrajetoria) {
+      return;
+    }
+
+    const filialSolicitada = seqFilial;
+    const trajetoriaSolicitada = seqTrajetoria;
+    this.carregandoPessoasElegiveis = true;
+
+    this.pessoaTrajetoriaService
+      .listarElegiveis(filialSolicitada, trajetoriaSolicitada)
+      .pipe(
+        finalize(() => {
+          if (
+            this.jornadaEmLote.seqFilial === filialSolicitada &&
+            this.jornadaEmLote.seqTrajetoria === trajetoriaSolicitada
+          ) {
+            this.carregandoPessoasElegiveis = false;
+          }
+        }),
+      )
+      .subscribe({
+        next: (pessoas) => {
+          if (
+            this.jornadaEmLote.seqFilial === filialSolicitada &&
+            this.jornadaEmLote.seqTrajetoria === trajetoriaSolicitada
+          ) {
+            this.pessoasElegiveis = pessoas;
+          }
+        },
+        error: (erro) => {
+          if (
+            this.jornadaEmLote.seqFilial === filialSolicitada &&
+            this.jornadaEmLote.seqTrajetoria === trajetoriaSolicitada
+          ) {
+            this.erroPessoasElegiveis = 'Não foi possível consultar as pessoas elegíveis.';
+          }
+          console.error('Erro ao buscar pessoas elegíveis', erro);
+        },
+      });
+  }
+
+  confirmarInicioJornada(): void {
+    if (!this.podeConfirmarJornada) {
+      return;
+    }
+
+    const quantidade = this.pessoasSelecionadas.length;
+    this.processandoJornada = true;
+    this.erroSalvarJornada = '';
+
+    this.pessoaTrajetoriaService
+      .criarEmLote({
+        seq_filial: this.jornadaEmLote.seqFilial!,
+        seq_trajetoria: this.jornadaEmLote.seqTrajetoria!,
+        seq_pessoas: this.pessoasSelecionadas.map((pessoa) => pessoa.seq_pessoa),
+        dt_inicio: this.jornadaEmLote.dtInicio,
+        ds_observacao: this.jornadaEmLote.dsObservacao.trim() || null,
+      })
+      .pipe(finalize(() => (this.processandoJornada = false)))
+      .subscribe({
+        next: (resultado) => {
+          this.modalJornadaVisivel = false;
+          this.limparModalJornada();
+          this.carregarPessoas();
+          this.messageService.add({
+            severity: 'success',
+            summary: MensagensApp.Geral_Success_TITULO,
+            detail: `Jornada iniciada com sucesso para ${resultado.quantidade || quantidade} ${
+              (resultado.quantidade || quantidade) === 1 ? 'pessoa' : 'pessoas'
+            }.`,
+          });
+        },
+        error: (erro: HttpErrorResponse) => {
+          this.erroSalvarJornada = this.obterMensagemErro(erro);
+        },
+      });
+  }
+
+  cancelarModalJornada(): void {
+    if (!this.processandoJornada) {
+      this.modalJornadaVisivel = false;
+    }
+  }
+
+  aoFecharModalJornada(): void {
+    if (!this.processandoJornada) {
+      this.limparModalJornada();
+    }
+  }
+
+  formatarTelefoneElegivel(pessoa: PessoaElegivelTrajetoria): string {
+    return this.pessoaService.formatarTelefone(pessoa.nr_telefone) || '-';
+  }
+
+  obterSituacaoPessoa(pessoa: PessoaElegivelTrajetoria): string {
+    return (
+      this.vinculos.find((vinculo) => vinculo.seq_vinculo === pessoa.seq_vinculo)?.ds_nome ??
+      'Sem vínculo'
+    );
+  }
+
+  obterNomeFilial(seqFilial: number): string {
+    return this.filiais.find((filial) => filial.seq_filial === seqFilial)?.ds_nome ?? '-';
+  }
+
+  obterNomeLider(seqLider: number | null): string | null {
+    if (!seqLider) {
+      return null;
+    }
+
+    return this.lideres.find((lider) => lider.seq_pessoa === seqLider)?.ds_nome?.trim() || null;
   }
 
   carregarFaixasEtarias(): void {
     this.faixaEtariaService.listar().subscribe({
       next: (dados) => {
-        this.faixasEtarias = dados.filter(faixa => faixa.st_ativo);
+        this.faixasEtarias = dados.filter((faixa) => faixa.st_ativo);
       },
       error: (erro) => {
         console.error(MensagensApp.Pessoas_Error_BUSCAR_FAIXAS_ETARIAS, erro);
-      }
+      },
     });
   }
 
   carregarVinculos(): void {
     this.vinculoService.listar().subscribe({
       next: (dados) => {
-        this.vinculos = dados.filter(vinculo => vinculo.st_ativo);
+        this.vinculos = dados.filter((vinculo) => vinculo.st_ativo);
       },
       error: (erro) => {
         console.error(MensagensApp.Pessoas_Error_BUSCAR_VINCULOS, erro);
-      }
+      },
     });
   }
 
   carregarMinisterios(): void {
     this.ministerioService.listar().subscribe({
       next: (dados) => {
-        this.ministerios = dados.filter(ministerio => ministerio.st_ativo);
+        this.ministerios = dados.filter((ministerio) => ministerio.st_ativo);
       },
       error: (erro) => {
         console.error(MensagensApp.Pessoas_Error_BUSCAR_MINISTERIOS, erro);
-      }
+      },
     });
   }
 
@@ -203,7 +456,7 @@ export class Pessoas implements OnInit {
       },
       error: (erro) => {
         console.error(MensagensApp.Pessoas_Error_BUSCAR_LIDERES, erro);
-      }
+      },
     });
   }
 
@@ -217,9 +470,9 @@ export class Pessoas implements OnInit {
       seq_filial: this.converterNumero(this.filtro.seqFilial),
       seq_vinculo: this.converterNumero(this.filtro.seqVinculo),
       seq_faixa_etaria: this.converterNumero(this.filtro.seqFaixaEtaria),
-      seq_lideres: this.filtro.seqLideres.map(seqLider => Number(seqLider)),
+      seq_lideres: this.filtro.seqLideres.map((seqLider) => Number(seqLider)),
       st_ativo: this.converterBooleano(this.filtro.stAtivo),
-      seq_ministerios: this.filtro.seqMinisterios.map(seqMinisterio => Number(seqMinisterio))
+      seq_ministerios: this.filtro.seqMinisterios.map((seqMinisterio) => Number(seqMinisterio)),
     };
   }
 
@@ -246,5 +499,58 @@ export class Pessoas implements OnInit {
 
   private converterGenero(valor: string): 'F' | 'M' | null {
     return valor === 'F' || valor === 'M' ? valor : null;
+  }
+
+  private criarFormularioJornada() {
+    return {
+      seqFilial: null as number | null,
+      seqTrajetoria: null as number | null,
+      dtInicio: this.obterDataAtual(),
+      dsObservacao: '',
+    };
+  }
+
+  private limparModalJornada(): void {
+    this.jornadaEmLote = this.criarFormularioJornada();
+    this.jornadasDisponiveis = [];
+    this.limparPessoasElegiveis();
+    this.carregandoJornadas = false;
+    this.erroJornadas = '';
+    this.erroSalvarJornada = '';
+  }
+
+  private limparPessoasElegiveis(): void {
+    this.pessoasElegiveis = [];
+    this.pessoasSelecionadas = [];
+    this.pesquisaNomeJornada = '';
+    this.pesquisaTelefoneJornada = '';
+    this.carregandoPessoasElegiveis = false;
+    this.erroPessoasElegiveis = '';
+    this.erroSalvarJornada = '';
+  }
+
+  private obterDataAtual(): string {
+    const hoje = new Date();
+    const ano = hoje.getFullYear();
+    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+    const dia = String(hoje.getDate()).padStart(2, '0');
+    return `${ano}-${mes}-${dia}`;
+  }
+
+  private normalizarTexto(valor: string): string {
+    return valor
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLocaleLowerCase('pt-BR')
+      .trim();
+  }
+
+  private obterMensagemErro(erro: HttpErrorResponse): string {
+    const detalhe = erro.error?.detail;
+    if (typeof detalhe === 'string' && detalhe.trim()) {
+      return detalhe;
+    }
+
+    return 'Não foi possível iniciar a jornada. Nenhuma pessoa foi incluída.';
   }
 }

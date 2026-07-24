@@ -1,0 +1,40 @@
+:host {
+  display: block;
+}
+
+.mini-steps {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 32px;
+  overflow-x: auto;
+  padding: .15rem 0 .35rem;
+}
+
+.mini-step {
+  display: grid;
+  place-items: center;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--brand-primary-soft);
+  color: var(--brand-primary);
+  font-size: .75rem;
+  font-weight: 800;
+  cursor: help;
+  transition: transform .15s ease, background-color .15s ease, color .15s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    background: var(--brand-primary);
+    color: #fff;
+  }
+}
+
+.mini-line {
+  flex: 1 1 36px;
+  min-width: 16px;
+  height: 2px;
+  background: var(--surface-border);
+}

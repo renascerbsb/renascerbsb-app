@@ -22,5 +22,16 @@ export const routes: Routes = [
   { path: 'pessoas', component: Pessoas, canActivate: [authGuard] },
   { path: 'kids', component: Kids, canActivate: [authGuard] },
   { path: 'visitantes', component: Visitantes, canActivate: [authGuard] },
+  {
+    path: 'jornada',
+    loadComponent: () => import('./pages/jornada/jornada').then((modulo) => modulo.Jornada),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'trajetorias',
+    loadComponent: () =>
+      import('./pages/trajetorias/trajetorias').then((modulo) => modulo.Trajetorias),
+    canActivate: [authGuard],
+  },
   { path: '**', redirectTo: 'inicio' },
 ];
