@@ -1,0 +1,61 @@
+<p-dialog
+  header="Definir líder"
+  styleClass="journey-dialog jornada-feature"
+  [visible]="visivel"
+  (visibleChange)="$event || solicitarFechamento()"
+  [modal]="true"
+  [draggable]="false"
+  [style]="{ width: 'min(620px, 95vw)' }"
+>
+  <div class="dialog-content">
+    <div class="field">
+      <label>Pessoas selecionadas</label>
+      <div class="person-chips">
+        @for (pessoa of pessoas; track pessoa.seq_pessoa) {
+          <span>{{ pessoa.ds_nome }}</span>
+        }
+      </div>
+    </div>
+    <div class="field">
+      <label for="novoLider">Novo líder *</label>
+      <p-select
+        inputId="novoLider"
+        [options]="lideresOpcoes"
+        optionLabel="ds_nome"
+        optionValue="seq_pessoa"
+        placeholder="Selecione"
+        [filter]="true"
+        appendTo="body"
+        [(ngModel)]="seqNovoLider"
+      />
+    </div>
+    <div class="field">
+      <label for="dataLideranca">Data de início *</label>
+      <input id="dataLideranca" pInputText type="date" [(ngModel)]="dataLideranca" />
+    </div>
+    <div class="field">
+      <label for="observacaoLideranca">Observação</label>
+      <textarea
+        id="observacaoLideranca"
+        pTextarea
+        rows="3"
+        [(ngModel)]="observacaoLideranca"
+      ></textarea>
+    </div>
+  </div>
+  <ng-template #footer>
+    <p-button
+      label="Cancelar"
+      severity="secondary"
+      [outlined]="true"
+      [disabled]="salvando"
+      (onClick)="solicitarFechamento()"
+    />
+    <p-button
+      label="Confirmar"
+      icon="pi pi-check"
+      [loading]="salvando"
+      (onClick)="definirLider()"
+    />
+  </ng-template>
+</p-dialog>

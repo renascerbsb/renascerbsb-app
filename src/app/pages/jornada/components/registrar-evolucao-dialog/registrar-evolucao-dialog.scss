@@ -1,0 +1,159 @@
+@use '../../styles/shared';
+
+:host {
+  display: contents;
+}
+
+@include shared.summary-grid;
+@include shared.timeline;
+@include shared.state-dots;
+
+.dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-top: 0.25rem;
+}
+
+.evolution-summary {
+  margin-bottom: 0.25rem;
+}
+
+.evolution-header {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.consultation-note,
+.evolution-error {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: 10px;
+}
+
+.consultation-note {
+  border: 1px solid #d1d5db;
+  background: var(--bg-page);
+  color: var(--text-muted);
+}
+
+.evolution-error {
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.evolution-section {
+  padding: 1rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  background: var(--p-card-background, #fff);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.evolution-section.pending-change {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px rgba(179, 77, 12, 0.1);
+}
+
+.stage-evolution-section {
+  border-left: 4px solid var(--brand-primary);
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+
+  small {
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  h3 {
+    margin: 0.15rem 0 0;
+    font-size: 1rem;
+    color: var(--text-main);
+  }
+}
+
+.stage-metadata {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+
+  span {
+    padding: 0.4rem 0.6rem;
+    border-radius: 999px;
+    background: var(--bg-page);
+    color: var(--text-muted);
+    font-size: 0.76rem;
+  }
+}
+
+.dates-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.stage-evolution-section > .field,
+.journey-status-section > .field {
+  margin-top: 1rem;
+}
+
+.stage-evolution-section .stage-metadata + .field {
+  margin-top: 0;
+}
+
+.pending-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--brand-primary);
+  font-weight: 700;
+}
+
+.field-help {
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.warning-help {
+  color: #b45309;
+  font-weight: 600;
+}
+
+.compact-field {
+  max-width: 280px;
+}
+
+.compact-timeline {
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 0.35rem;
+}
+
+.timeline-item.editing-stage > div {
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  background: var(--brand-primary-soft);
+}
+
+@media (max-width: 560px) {
+  .summary-grid,
+  .evolution-header,
+  .dates-grid {
+    grid-template-columns: 1fr;
+  }
+}

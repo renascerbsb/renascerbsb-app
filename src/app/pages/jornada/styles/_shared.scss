@@ -1,0 +1,137 @@
+@mixin summary-grid {
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+
+    > div {
+      padding: 0.8rem;
+      border: 1px solid var(--surface-border);
+      border-radius: 10px;
+      background: var(--bg-page);
+    }
+
+    small,
+    strong {
+      display: block;
+    }
+
+    small {
+      margin-bottom: 0.3rem;
+      color: var(--text-muted);
+    }
+  }
+}
+
+@mixin timeline {
+  .timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+
+  .timeline-item {
+    display: grid;
+    grid-template-columns: 38px 1fr;
+    gap: 0.75rem;
+    position: relative;
+    padding-bottom: 0.5rem;
+  }
+
+  .timeline-item:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 18px;
+    top: 36px;
+    bottom: -0.8rem;
+    width: 2px;
+    background: var(--surface-border);
+  }
+
+  .timeline-dot {
+    position: relative;
+    z-index: 1;
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    border: 2px solid #d1d5db;
+    border-radius: 50%;
+    background: var(--p-card-background, #fff);
+    font-weight: 700;
+  }
+
+  .timeline-item > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding-top: 0.3rem;
+
+    small {
+      color: var(--text-muted);
+    }
+  }
+}
+
+@mixin state-dots($selector: '.timeline-dot') {
+  #{$selector}.done {
+    background: #15803d;
+    color: #fff;
+    border-color: #15803d;
+  }
+
+  #{$selector}.current {
+    background: #b7791f;
+    color: #fff;
+    border-color: #b7791f;
+    box-shadow: 0 0 0 4px rgba(183, 121, 31, 0.16);
+  }
+
+  #{$selector}.paused {
+    background: #f59e0b;
+    color: #fff;
+    border-color: #f59e0b;
+  }
+
+  #{$selector}.cancelled {
+    background: #b91c1c;
+    color: #fff;
+    border-color: #b91c1c;
+  }
+
+  #{$selector}.overdue {
+    background: #b91c1c;
+    color: #fff;
+    border-color: #b91c1c;
+    box-shadow: 0 0 0 4px rgba(185, 28, 28, 0.14);
+  }
+}
+
+@mixin states {
+  .empty-state,
+  .load-state {
+    min-height: 180px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 2rem;
+    color: var(--text-muted);
+    text-align: center;
+  }
+
+  .empty-state i {
+    font-size: 2rem;
+    color: var(--brand-primary);
+  }
+
+  .empty-state.compact {
+    min-height: 130px;
+  }
+
+  .error-state i {
+    color: #b91c1c;
+    font-size: 1.5rem;
+  }
+}

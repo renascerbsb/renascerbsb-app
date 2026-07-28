@@ -1,0 +1,276 @@
+<p-dialog
+  header="Registrar evolução"
+  styleClass="journey-dialog jornada-feature"
+  [visible]="visivel"
+  (visibleChange)="$event || solicitarFechamento()"
+  [modal]="true"
+  [draggable]="false"
+  [closable]="!salvandoEvolucao"
+  [closeOnEscape]="!salvandoEvolucao"
+  [dismissableMask]="!salvandoEvolucao"
+  [style]="{ width: 'min(860px, 95vw)' }"
+>
+  @if (linhaEvolucao && etapaEvolucao) {
+    <div class="dialog-content">
+      @if (modoConsultaEvolucao) {
+        <div class="consultation-note">
+          <i class="pi pi-lock"></i>
+          <span>Jornada encerrada. Os dados estão disponíveis somente para consulta.</span>
+        </div>
+      }
+
+      <div class="summary-grid evolution-summary evolution-header">
+        <div>
+          <small>Pessoa</small><strong>{{ linhaEvolucao.pessoa.ds_nome }}</strong>
+        </div>
+        <div>
+          <small>Jornada</small><strong>{{ linhaEvolucao.trajetoria.ds_nome }}</strong>
+        </div>
+        <div>
+          <small>Etapa atual</small><strong>{{ etapaEvolucao.modelo.ds_nome }}</strong>
+        </div>
+      </div>
+
+      <section
+        class="evolution-section journey-status-section"
+        [class.pending-change]="jornadaFoiAlterada"
+      >
+        <div class="section-heading">
+          <div>
+            <small>Registro geral</small>
+            <h3>Situação da jornada</h3>
+          </div>
+          <p-tag
+            [value]="nomeSituacao(linhaEvolucao.pessoaTrajetoria.nu_situacao)"
+            [severity]="severidadeSituacao(linhaEvolucao.pessoaTrajetoria.nu_situacao)"
+            [rounded]="true"
+          />
+        </div>
+        <div class="field">
+          <label for="situacaoGeralJornada">Nova situação</label>
+          <p-select
+            inputId="situacaoGeralJornada"
+            [options]="situacoesJornadaEvolucao"
+            optionLabel="label"
+            optionValue="value"
+            optionDisabled="disabled"
+            appendTo="body"
+            [disabled]="modoConsultaEvolucao || salvandoEvolucao"
+            [(ngModel)]="situacaoJornadaEvolucao"
+          />
+          @if (jornadaFoiAlterada) {
+            <small class="pending-label"><i class="pi pi-pencil"></i> Alteração pendente</small>
+          }
+          <small class="field-help">
+            A conclusão manual depende de validação específica do backend e está indisponível.
+          </small>
+        </div>
+        @if (situacaoJornadaEvolucao === 4 || situacaoJornadaEvolucao === 5) {
+          <div class="field compact-field">
+            <label for="dataConclusaoJornada">Data de conclusão da jornada *</label>
+            <input
+              id="dataConclusaoJornada"
+              pInputText
+              type="date"
+              [disabled]="modoConsultaEvolucao || salvandoEvolucao"
+              [(ngModel)]="dataConclusaoJornadaEvolucao"
+            />
+          </div>
+        }
+      </section>
+
+      <section
+        class="evolution-section stage-evolution-section"
+        [class.pending-change]="etapaFoiAlterada"
+      >
+        <div class="section-heading">
+          <div>
+            <small>Registro principal</small>
+            <h3>Evolução da etapa</h3>
+          </div>
+          <p-tag
+            [value]="nomeSituacao(etapaEvolucao.acompanhamento!.nu_situacao)"
+            [severity]="severidadeSituacao(etapaEvolucao.acompanhamento!.nu_situacao)"
+            [rounded]="true"
+          />
+        </div>
+
+        <div class="stage-metadata">
+          <span><b>Etapa:</b> {{ etapaEvolucao.modelo.ds_nome }}</span>
+          <span><b>Ordem:</b> {{ etapaEvolucao.modelo.nr_ordem }}</span>
+          <span>
+            <b>Obrigatória:</b> {{ etapaEvolucao.modelo.st_obrigatoria ? 'Sim' : 'Não' }}
+          </span>
+        </div>
+
+        <div class="field">
+          <label for="situacaoEtapaAtual">Situação da etapa *</label>
+          <p-select
+            inputId="situacaoEtapaAtual"
+            [options]="situacoesEtapaEvolucao"
+            optionLabel="label"
+            optionValue="value"
+            optionDisabled="disabled"
+            appendTo="body"
+            [disabled]="modoConsultaEvolucao || salvandoEvolucao"
+            [(ngModel)]="situacaoEtapaEvolucao"
+          />
+          @if (etapaFoiAlterada) {
+            <small class="pending-label"><i class="pi pi-pencil"></i> Alteração pendente</small>
+          }
+          @if (situacaoEtapaEvolucao === 5) {
+            <small class="field-help warning-help">
+              Pelo contrato atual, cancelar a etapa também encerra a jornada como cancelada.
+            </small>
+          }
+        </div>
+
+        <div class="dates-grid">
+          <div class="field">
+            <label for="dataInicioEtapa">Data de início</label>
+            <input
+              id="dataInicioEtapa"
+              pInputText
+              type="date"
+              [disabled]="!podeEditarDataInicioEtapa"
+              [(ngModel)]="dataInicioEtapaEvolucao"
+            />
+            @if (
+              situacaoEtapaEvolucao !== etapaEvolucao.acompanhamento!.nu_situacao &&
+              situacaoEtapaEvolucao !== 2
+            ) {
+              <small class="field-help">
+                Nesta transição, o backend preserva o início existente; ao concluir sem início,
+                utiliza a data de conclusão.
+              </small>
+            }
+          </div>
+          <div class="field">
+            <label for="dataConclusaoEtapa">
+              Data de conclusão
+              @if (
+                situacaoEtapaEvolucao === 4 ||
+                situacaoEtapaEvolucao === 5 ||
+                situacaoEtapaEvolucao === 6
+              ) {
+                *
+              }
+            </label>
+            <input
+              id="dataConclusaoEtapa"
+              pInputText
+              type="date"
+              [disabled]="
+                modoConsultaEvolucao ||
+                salvandoEvolucao ||
+                situacaoEtapaEvolucao === 1 ||
+                situacaoEtapaEvolucao === 2 ||
+                situacaoEtapaEvolucao === 3
+              "
+              [(ngModel)]="dataConclusaoEtapaEvolucao"
+            />
+          </div>
+        </div>
+
+        @if (situacaoEtapaEvolucao === 6) {
+          <div class="field">
+            <label for="motivoPulo">Motivo do pulo *</label>
+            <textarea
+              id="motivoPulo"
+              pTextarea
+              rows="3"
+              [disabled]="modoConsultaEvolucao || salvandoEvolucao"
+              [(ngModel)]="motivoPulo"
+            ></textarea>
+          </div>
+        }
+
+        <div class="field">
+          <label for="observacaoEvolucao">
+            Observação
+            @if (
+              etapaEvolucao.modelo.st_exige_observacao &&
+              (situacaoEtapaEvolucao === 4 || situacaoEtapaEvolucao === 6)
+            ) {
+              *
+            }
+          </label>
+          <textarea
+            id="observacaoEvolucao"
+            pTextarea
+            rows="4"
+            placeholder="Descreva o que ocorreu nesta etapa"
+            [disabled]="modoConsultaEvolucao || salvandoEvolucao"
+            [(ngModel)]="observacaoEvolucao"
+          ></textarea>
+        </div>
+      </section>
+
+      <section class="evolution-section timeline-section">
+        <div class="section-heading">
+          <div>
+            <small>Somente consulta</small>
+            <h3>Etapas da jornada</h3>
+          </div>
+        </div>
+        <div class="timeline compact-timeline">
+          @for (
+            etapa of linhaEvolucao.etapas;
+            track etapa.modelo.seq_trajetoria_etapa;
+            let indice = $index
+          ) {
+            <div class="timeline-item" [class.editing-stage]="etapa === etapaEvolucao">
+              <span class="timeline-dot" [class]="classeEtapa(etapa, linhaEvolucao)">
+                @if (classeEtapa(etapa, linhaEvolucao) === 'done') {
+                  <i class="pi pi-check"></i>
+                } @else {
+                  {{ indice + 1 }}
+                }
+              </span>
+              <div>
+                <strong>{{ etapa.modelo.ds_nome }}</strong>
+                <small>
+                  {{
+                    etapa.acompanhamento
+                      ? nomeSituacao(etapa.acompanhamento.nu_situacao)
+                      : 'Sem acompanhamento'
+                  }}
+                </small>
+                <small>
+                  Início:
+                  {{ (etapa.acompanhamento?.dt_inicio | date: 'dd/MM/yyyy' : 'UTC') || '-' }}
+                  · Conclusão:
+                  {{ (etapa.acompanhamento?.dt_conclusao | date: 'dd/MM/yyyy' : 'UTC') || '-' }}
+                </small>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+
+      @if (erroEvolucao) {
+        <div class="evolution-error" role="alert">
+          <i class="pi pi-exclamation-circle"></i><span>{{ erroEvolucao }}</span>
+        </div>
+      }
+    </div>
+  }
+  <ng-template #footer>
+    <p-button
+      [label]="modoConsultaEvolucao ? 'Fechar' : 'Cancelar'"
+      severity="secondary"
+      [outlined]="true"
+      [disabled]="salvandoEvolucao"
+      (onClick)="solicitarFechamento()"
+    />
+    @if (!modoConsultaEvolucao) {
+      <p-button
+        label="Registrar evolução"
+        icon="pi pi-check"
+        [loading]="salvandoEvolucao"
+        [disabled]="salvandoEvolucao || (!etapaFoiAlterada && !jornadaFoiAlterada)"
+        (onClick)="registrarEvolucao()"
+      />
+    }
+  </ng-template>
+</p-dialog>
