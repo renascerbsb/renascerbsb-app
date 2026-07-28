@@ -1,26 +1,25 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
-import { TableModule } from 'primeng/table';
+import { TableLazyLoadEvent, TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
-import { finalize, forkJoin } from 'rxjs';
+import { Subject, catchError, forkJoin, map, of, switchMap, tap } from 'rxjs';
 
-import { DashboardJornada, DashboardService } from '../../services/dashboard.service';
 import { Filial, FilialService } from '../../services/filial.service';
 import {
-  PessoaTrajetoriaEtapa,
-  PessoaTrajetoriaEtapaService,
-} from '../../services/pessoa-trajetoria-etapa.service';
-import {
-  PessoaTrajetoria,
-  PessoaTrajetoriaService,
-} from '../../services/pessoa-trajetoria.service';
+  JornadaConsultaParams,
+  JornadaDirecaoOrdenacao,
+  JornadaKpis,
+  JornadaOrdenacao,
+  JornadaService,
+} from '../../services/jornada.service';
 import { Pessoa, PessoaService } from '../../services/pessoa.service';
 import { TrajetoriaEtapa, TrajetoriaEtapaService } from '../../services/trajetoria-etapa.service';
 import { Trajetoria, TrajetoriaService } from '../../services/trajetoria.service';
@@ -37,7 +36,6 @@ import {
   etapaParaEvolucao,
   jornadaEncerrada,
   nomeSituacao,
-  proximaEtapa,
   severidadeSituacao,
   textoProximaAcao,
   tooltipEtapa,
@@ -47,6 +45,14 @@ interface Opcao<T> {
   label: string;
   value: T;
   disabled?: boolean;
+}
+
+interface FiltrosJornada {
+  busca: string;
+  seqFilial: number | null;
+  seqTrajetoria: number | null;
+  nuSituacao: SituacaoTrajetoria | null;
+  lideranca: '' | 'com' | 'sem';
 }
 
 @Component({
@@ -69,14 +75,15 @@ interface Opcao<T> {
   styleUrl: './jornada.component.scss',
 })
 export class Jornada implements OnInit {
-  private readonly dashboardService = inject(DashboardService);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly filialService = inject(FilialService);
+  private readonly jornadaService = inject(JornadaService);
   private readonly pessoaService = inject(PessoaService);
-  private readonly pessoaTrajetoriaService = inject(PessoaTrajetoriaService);
-  private readonly pessoaTrajetoriaEtapaService = inject(PessoaTrajetoriaEtapaService);
   private readonly trajetoriaService = inject(TrajetoriaService);
   private readonly trajetoriaEtapaService = inject(TrajetoriaEtapaService);
   private readonly messageService = inject(MessageService);
+  private readonly consultas$ = new Subject<JornadaConsultaParams>();
+  private readonly consultasKpis$ = new Subject<number | null>();
 
   readonly situacoes: Opcao<SituacaoTrajetoria | null>[] = [
     { label: 'Todas', value: null },
@@ -84,37 +91,46 @@ export class Jornada implements OnInit {
       (item) => ({ ...item }),
     ),
   ];
-  readonly liderancas: Opcao<string>[] = [
+  readonly liderancas: Opcao<FiltrosJornada['lideranca']>[] = [
     { label: 'Todas', value: '' },
     { label: 'Com líder', value: 'com' },
     { label: 'Sem líder', value: 'sem' },
   ];
-  indicadores: DashboardJornada | null = null;
-  pessoas: Pessoa[] = [];
+
+  indicadores: JornadaKpis | null = null;
   filiais: Filial[] = [];
   trajetorias: Trajetoria[] = [];
-  etapasModelo: TrajetoriaEtapa[] = [];
-  etapasPessoas: PessoaTrajetoriaEtapa[] = [];
   linhas: JornadaLinha[] = [];
   selecionadas: JornadaLinha[] = [];
   lideres: Pessoa[] = [];
   carregando = false;
+  carregandoKpis = false;
   erroCarregamento = '';
+  erroKpis = '';
+  totalRegistros = 0;
+  primeiroRegistro = 0;
 
   filtro = this.criarFiltros();
   filtrosAplicados = this.criarFiltros();
+  consulta: JornadaConsultaParams = {
+    page: 1,
+    pageSize: 10,
+    sort: 'pessoa',
+    order: 'asc',
+  };
 
   drawerVisivel = false;
   linhaDetalhada: JornadaLinha | null = null;
-
   modalLiderVisivel = false;
-
   modalEvolucaoVisivel = false;
   linhaEvolucao: JornadaLinha | null = null;
   etapaEvolucao: EtapaDaJornada | null = null;
+  configuracaoEtapaEvolucao: TrajetoriaEtapa | null = null;
 
   ngOnInit(): void {
-    this.carregarDados();
+    this.configurarConsultas();
+    this.carregarFiltros();
+    this.carregarKpis();
   }
 
   get filiaisOpcoes(): Opcao<number>[] {
@@ -135,119 +151,53 @@ export class Jornada implements OnInit {
     return this.lideres.filter((lider) => !selecionados.has(lider.seq_pessoa));
   }
 
-  get pessoasSelecionadas(): Pessoa[] {
-    const unicas = new Map<number, Pessoa>();
-    this.selecionadas.forEach((linha) => unicas.set(linha.pessoa.seq_pessoa, linha.pessoa));
-    return [...unicas.values()];
-  }
-
-  get linhasFiltradas(): JornadaLinha[] {
-    const busca = this.normalizar(this.filtrosAplicados.busca);
-    const telefone = this.filtrosAplicados.busca.replace(/\D/g, '');
-
-    return this.linhas.filter((linha) => {
-      const correspondeBusca =
-        !busca ||
-        this.normalizar(linha.pessoa.ds_nome).includes(busca) ||
-        (!!telefone && (linha.pessoa.nr_telefone ?? '').replace(/\D/g, '').includes(telefone));
-      const correspondeFilial =
-        !this.filtrosAplicados.seqFilial ||
-        linha.pessoa.seq_filial === this.filtrosAplicados.seqFilial;
-      const correspondeTrajetoria =
-        !this.filtrosAplicados.seqTrajetoria ||
-        linha.trajetoria.seq_trajetoria === this.filtrosAplicados.seqTrajetoria;
-      const correspondeSituacao =
-        !this.filtrosAplicados.nuSituacao ||
-        linha.pessoaTrajetoria.nu_situacao === this.filtrosAplicados.nuSituacao;
-      const temLider = !!linha.pessoa.lider;
-      const correspondeLideranca =
-        !this.filtrosAplicados.lideranca ||
-        (this.filtrosAplicados.lideranca === 'com' && temLider) ||
-        (this.filtrosAplicados.lideranca === 'sem' && !temLider);
-      return (
-        correspondeBusca &&
-        correspondeFilial &&
-        correspondeTrajetoria &&
-        correspondeSituacao &&
-        correspondeLideranca
-      );
-    });
-  }
-
-  get quantidadeSemLider(): number {
-    const pessoas = new Set(
-      this.linhas
-        .filter(
-          (linha) =>
-            !linha.pessoa.lider &&
-            (!this.filtrosAplicados.seqFilial ||
-              linha.pessoa.seq_filial === this.filtrosAplicados.seqFilial),
-        )
-        .map((linha) => linha.pessoa.seq_pessoa),
-    );
-    return pessoas.size;
+  get pessoasSelecionadas() {
+    return [
+      ...new Map(
+        this.selecionadas.map((linha) => [linha.pessoa.seq_pessoa, linha.pessoa]),
+      ).values(),
+    ];
   }
 
   carregarDados(): void {
-    this.carregando = true;
-    this.erroCarregamento = '';
-    forkJoin({
-      indicadores: this.dashboardService.obterIndicadoresJornada(this.filtrosAplicados.seqFilial),
-      pessoasAtivas: this.pessoaService.listar({ st_ativo: true }),
-      pessoasInativas: this.pessoaService.listar({ st_ativo: false }),
-      filiais: this.filialService.listar(),
-      trajetoriasAtivas: this.trajetoriaService.listar({ st_ativo: true }),
-      trajetoriasInativas: this.trajetoriaService.listar({ st_ativo: false }),
-      etapasAtivas: this.trajetoriaEtapaService.listar({ st_ativo: true }),
-      etapasInativas: this.trajetoriaEtapaService.listar({ st_ativo: false }),
-      pessoasTrajetorias: this.pessoaTrajetoriaService.listar(),
-      etapasPessoas: this.pessoaTrajetoriaEtapaService.listar(),
-    })
-      .pipe(finalize(() => (this.carregando = false)))
-      .subscribe({
-        next: (dados) => {
-          this.indicadores = dados.indicadores;
-          this.pessoas = this.unirPorId(
-            [...dados.pessoasAtivas, ...dados.pessoasInativas],
-            (pessoa) => pessoa.seq_pessoa,
-          );
-          this.lideres = dados.pessoasAtivas.sort((a, b) =>
-            a.ds_nome.localeCompare(b.ds_nome, 'pt-BR'),
-          );
-          this.filiais = dados.filiais;
-          this.trajetorias = this.unirPorId(
-            [...dados.trajetoriasAtivas, ...dados.trajetoriasInativas],
-            (trajetoria) => trajetoria.seq_trajetoria,
-          );
-          this.etapasModelo = this.unirPorId(
-            [...dados.etapasAtivas, ...dados.etapasInativas],
-            (etapa) => etapa.seq_trajetoria_etapa,
-          );
-          this.etapasPessoas = dados.etapasPessoas;
-          this.montarLinhas(dados.pessoasTrajetorias);
-          this.atualizarDrawerAposRecarga();
-        },
-        error: () => {
-          this.erroCarregamento = 'Não foi possível carregar os dados da Jornada.';
-        },
-      });
+    this.consultas$.next({ ...this.consulta });
+  }
+
+  aoCarregarTabela(evento: TableLazyLoadEvent): void {
+    const pageSize = evento.rows ?? this.consulta.pageSize;
+    const sort = this.ordenacaoValida(evento.sortField) ?? this.consulta.sort ?? 'pessoa';
+    const order: JornadaDirecaoOrdenacao = evento.sortOrder === -1 ? 'desc' : 'asc';
+    const ordenacaoMudou = sort !== this.consulta.sort || order !== this.consulta.order;
+    const primeiro = ordenacaoMudou ? 0 : (evento.first ?? 0);
+
+    this.primeiroRegistro = primeiro;
+    this.consulta = {
+      ...this.consulta,
+      page: this.converterPaginaPrimeParaApi(primeiro, pageSize),
+      pageSize,
+      sort,
+      order,
+    };
+    this.carregarDados();
   }
 
   pesquisar(): void {
     this.filtrosAplicados = { ...this.filtro };
+    this.aplicarFiltrosNaConsulta();
     this.selecionadas = [];
-    this.dashboardService
-      .obterIndicadoresJornada(this.filtrosAplicados.seqFilial)
-      .subscribe((indicadores) => (this.indicadores = indicadores));
+    this.primeiroRegistro = 0;
+    this.carregarDados();
+    this.carregarKpis();
   }
 
   limparFiltros(): void {
     this.filtro = this.criarFiltros();
     this.filtrosAplicados = this.criarFiltros();
+    this.aplicarFiltrosNaConsulta();
     this.selecionadas = [];
-    this.dashboardService
-      .obterIndicadoresJornada()
-      .subscribe((indicadores) => (this.indicadores = indicadores));
+    this.primeiroRegistro = 0;
+    this.carregarDados();
+    this.carregarKpis();
   }
 
   abrirDetalhes(linha: JornadaLinha): void {
@@ -264,32 +214,57 @@ export class Jornada implements OnInit {
       });
       return;
     }
-    this.modalLiderVisivel = true;
+    if (this.lideres.length) {
+      this.modalLiderVisivel = true;
+      return;
+    }
+    this.pessoaService.listar({ st_ativo: true }).subscribe({
+      next: (lideres) => {
+        this.lideres = [...lideres].sort((a, b) => a.ds_nome.localeCompare(b.ds_nome, 'pt-BR'));
+        this.modalLiderVisivel = true;
+      },
+      error: () =>
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Não foi possível carregar os líderes',
+          detail: 'Tente novamente antes de definir a liderança.',
+        }),
+    });
   }
 
   aoDefinirLiderSalvo(): void {
     this.modalLiderVisivel = false;
     this.selecionadas = [];
-    this.carregarDados();
+    this.recarregarDadosCanonicos();
   }
 
   abrirModalEvolucao(linha: JornadaLinha): void {
     const etapa = this.etapaParaEvolucao(linha);
-    if (!etapa?.acompanhamento) {
+    if (!etapa) {
       return;
     }
-    this.linhaEvolucao = linha;
-    this.etapaEvolucao = etapa;
-    this.modalEvolucaoVisivel = true;
+    this.trajetoriaEtapaService.buscarPorId(etapa.seq_trajetoria_etapa).subscribe({
+      next: (configuracao) => {
+        this.linhaEvolucao = linha;
+        this.etapaEvolucao = etapa;
+        this.configuracaoEtapaEvolucao = configuracao;
+        this.modalEvolucaoVisivel = true;
+      },
+      error: () =>
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Não foi possível abrir a evolução',
+          detail: 'A configuração da etapa atual não pôde ser carregada.',
+        }),
+    });
   }
 
   aoRegistrarEvolucaoSalva(): void {
     this.modalEvolucaoVisivel = false;
-    this.carregarDados();
+    this.recarregarDadosCanonicos();
   }
 
   readonly etapaParaEvolucao = etapaParaEvolucao;
-  readonly proximaEtapa = proximaEtapa;
   readonly textoProximaAcao = textoProximaAcao;
   readonly nomeSituacao = nomeSituacao;
   readonly severidadeSituacao = severidadeSituacao;
@@ -297,95 +272,137 @@ export class Jornada implements OnInit {
   readonly tooltipEtapa = tooltipEtapa;
   readonly jornadaEncerrada = jornadaEncerrada;
 
-  formatarTelefone(pessoa: Pessoa): string {
-    return this.pessoaService.formatarTelefone(pessoa) || 'Sem telefone';
+  formatarTelefone(telefone: string | null): string {
+    return this.pessoaService.formatarTelefone(telefone) || 'Sem telefone';
   }
 
-  private montarLinhas(pessoasTrajetorias: PessoaTrajetoria[]): void {
-    const pessoas = new Map(this.pessoas.map((pessoa) => [pessoa.seq_pessoa, pessoa]));
-    const trajetorias = new Map(
-      this.trajetorias.map((trajetoria) => [trajetoria.seq_trajetoria, trajetoria]),
-    );
-    const filiais = new Map(this.filiais.map((filial) => [filial.seq_filial, filial]));
-    const acompanhamentos = new Map(
-      this.etapasPessoas.map((etapa) => [
-        `${etapa.seq_pessoa_trajetoria}:${etapa.seq_trajetoria_etapa}`,
-        etapa,
-      ]),
-    );
-
-    this.linhas = pessoasTrajetorias
-      .map((pessoaTrajetoria): JornadaLinha | null => {
-        const pessoa = pessoas.get(pessoaTrajetoria.seq_pessoa);
-        const trajetoria = trajetorias.get(pessoaTrajetoria.seq_trajetoria);
-        if (!pessoa || !trajetoria) {
-          return null;
+  private configurarConsultas(): void {
+    this.consultas$
+      .pipe(
+        tap(() => {
+          this.carregando = true;
+          this.erroCarregamento = '';
+        }),
+        switchMap((parametros) =>
+          this.jornadaService.listar(parametros).pipe(
+            map((dados) => ({ dados, erro: '' })),
+            catchError(() =>
+              of({ dados: null, erro: 'Não foi possível carregar os dados da Jornada.' }),
+            ),
+          ),
+        ),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(({ dados, erro }) => {
+        this.carregando = false;
+        this.erroCarregamento = erro;
+        if (!dados) {
+          this.linhas = [];
+          this.totalRegistros = 0;
+          return;
         }
-        const etapas = this.etapasModelo
-          .filter((etapa) => {
-            const chave = `${pessoaTrajetoria.seq_pessoa_trajetoria}:${etapa.seq_trajetoria_etapa}`;
-            return (
-              etapa.seq_trajetoria === trajetoria.seq_trajetoria &&
-              (etapa.st_ativo || acompanhamentos.has(chave))
-            );
-          })
-          .sort((a, b) => a.nr_ordem - b.nr_ordem)
-          .map((modelo) => ({
-            modelo,
-            acompanhamento:
-              acompanhamentos.get(
-                `${pessoaTrajetoria.seq_pessoa_trajetoria}:${modelo.seq_trajetoria_etapa}`,
-              ) ?? null,
-          }));
-        return {
-          pessoaTrajetoria,
-          pessoa,
-          trajetoria,
-          filial: pessoa.seq_filial ? (filiais.get(pessoa.seq_filial) ?? null) : null,
-          etapas,
-        };
-      })
-      .filter((linha): linha is JornadaLinha => !!linha);
+        this.linhas = dados.items;
+        this.totalRegistros = dados.total_items;
+        this.consulta = { ...this.consulta, page: dados.page, pageSize: dados.page_size };
+        this.atualizarDrawerAposRecarga();
+      });
+
+    this.consultasKpis$
+      .pipe(
+        tap(() => {
+          this.carregandoKpis = true;
+          this.erroKpis = '';
+        }),
+        switchMap((seqFilial) =>
+          this.jornadaService.obterKpis(seqFilial).pipe(
+            map((dados) => ({ dados, erro: '' })),
+            catchError(() =>
+              of({ dados: null, erro: 'Não foi possível carregar os indicadores.' }),
+            ),
+          ),
+        ),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(({ dados, erro }) => {
+        this.carregandoKpis = false;
+        this.erroKpis = erro;
+        this.indicadores = dados;
+      });
   }
 
-  private atualizarDrawerAposRecarga(): void {
-    const seqPessoaTrajetoria = this.linhaDetalhada?.pessoaTrajetoria.seq_pessoa_trajetoria;
-    if (!seqPessoaTrajetoria) {
-      return;
-    }
-    this.linhaDetalhada =
-      this.linhas.find(
-        (linha) => linha.pessoaTrajetoria.seq_pessoa_trajetoria === seqPessoaTrajetoria,
-      ) ?? null;
+  private carregarFiltros(): void {
+    forkJoin({ filiais: this.filialService.listar(), trajetorias: this.trajetoriaService.listar() })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(({ filiais, trajetorias }) => {
+        this.filiais = filiais;
+        this.trajetorias = trajetorias;
+      });
   }
 
-  private criarFiltros() {
-    return {
-      busca: '',
-      seqFilial: null as number | null,
-      seqTrajetoria: null as number | null,
-      nuSituacao: null as SituacaoTrajetoria | null,
-      lideranca: '',
+  private carregarKpis(): void {
+    this.consultasKpis$.next(this.filtrosAplicados.seqFilial);
+  }
+
+  private recarregarDadosCanonicos(): void {
+    this.carregarDados();
+    this.carregarKpis();
+  }
+
+  private aplicarFiltrosNaConsulta(): void {
+    const semLider =
+      this.filtrosAplicados.lideranca === ''
+        ? undefined
+        : this.filtrosAplicados.lideranca === 'sem';
+    this.consulta = {
+      ...this.consulta,
+      page: 1,
+      pesquisa: this.filtrosAplicados.busca.trim() || undefined,
+      seqFilial: this.filtrosAplicados.seqFilial ?? undefined,
+      seqTrajetoria: this.filtrosAplicados.seqTrajetoria ?? undefined,
+      nuSituacao: this.filtrosAplicados.nuSituacao ?? undefined,
+      semLider,
     };
   }
 
-  private normalizar(valor: string): string {
-    return valor
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLocaleLowerCase('pt-BR')
-      .trim();
+  private converterPaginaPrimeParaApi(primeiro: number, quantidade: number): number {
+    return Math.floor(primeiro / quantidade) + 1;
   }
 
-  private hoje(): string {
-    const hoje = new Date();
-    const ano = hoje.getFullYear();
-    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
-    const dia = String(hoje.getDate()).padStart(2, '0');
-    return `${ano}-${mes}-${dia}`;
+  private ordenacaoValida(campo: string | string[] | null | undefined): JornadaOrdenacao | null {
+    if (typeof campo !== 'string') {
+      return null;
+    }
+    const permitidas: readonly JornadaOrdenacao[] = [
+      'pessoa',
+      'trajetoria',
+      'situacao',
+      'lider',
+      'proxima_acao',
+      'dt_inicio',
+      'dh_ultima_evolucao',
+    ];
+    return permitidas.includes(campo as JornadaOrdenacao) ? (campo as JornadaOrdenacao) : null;
   }
 
-  private unirPorId<T>(itens: T[], obterId: (item: T) => number): T[] {
-    return [...new Map(itens.map((item) => [obterId(item), item])).values()];
+  private atualizarDrawerAposRecarga(): void {
+    const id = this.linhaDetalhada?.jornada.seq_pessoa_trajetoria;
+    if (!id) {
+      return;
+    }
+    this.linhaDetalhada =
+      this.linhas.find((linha) => linha.jornada.seq_pessoa_trajetoria === id) ?? null;
+    if (!this.linhaDetalhada) {
+      this.drawerVisivel = false;
+    }
+  }
+
+  private criarFiltros(): FiltrosJornada {
+    return {
+      busca: '',
+      seqFilial: null,
+      seqTrajetoria: null,
+      nuSituacao: null,
+      lideranca: '',
+    };
   }
 }

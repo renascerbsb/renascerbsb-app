@@ -1,65 +1,15 @@
-import { PessoaTrajetoriaEtapa } from '../../services/pessoa-trajetoria-etapa.service';
 import {
   SITUACOES_TRAJETORIA,
   SituacaoTrajetoria,
 } from '../../shared/enums/situacao-trajetoria.enum';
 import { EtapaDaJornada, JornadaLinha } from './interfaces/jornada.models';
 
-export function etapaEncerrada(etapa: PessoaTrajetoriaEtapa | null): boolean {
-  return (
-    !!etapa && [SituacaoTrajetoria.CONCLUIDA, SituacaoTrajetoria.PULADA].includes(etapa.nu_situacao)
-  );
-}
-
 export function jornadaEncerrada(linha: JornadaLinha): boolean {
-  return [SituacaoTrajetoria.CONCLUIDA, SituacaoTrajetoria.CANCELADA].includes(
-    linha.pessoaTrajetoria.nu_situacao,
-  );
-}
-
-export function etapaVencida(etapa: EtapaDaJornada): boolean {
-  const acompanhamento = etapa.acompanhamento;
-  const prazo = etapa.modelo.nr_prazo_dias;
-  if (
-    !acompanhamento?.dt_inicio ||
-    acompanhamento.nu_situacao !== SituacaoTrajetoria.EM_ANDAMENTO ||
-    prazo === null ||
-    prazo === undefined ||
-    prazo < 0
-  ) {
-    return false;
-  }
-  const vencimento = new Date(`${acompanhamento.dt_inicio}T00:00:00`);
-  vencimento.setDate(vencimento.getDate() + prazo);
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-  return hoje > vencimento;
-}
-
-export function proximaEtapa(linha: JornadaLinha): EtapaDaJornada | null {
-  if (jornadaEncerrada(linha)) {
-    return null;
-  }
-  return linha.etapas.find((etapa) => !etapaEncerrada(etapa.acompanhamento)) ?? null;
+  return linha.jornada.st_concluida || linha.jornada.st_cancelada;
 }
 
 export function etapaParaEvolucao(linha: JornadaLinha): EtapaDaJornada | null {
-  const etapaAberta = linha.etapas.find(
-    (etapa) => !!etapa.acompanhamento && !etapaEncerrada(etapa.acompanhamento),
-  );
-  if (!jornadaEncerrada(linha)) {
-    return etapaAberta ?? null;
-  }
-  if (linha.pessoaTrajetoria.nu_situacao === SituacaoTrajetoria.CANCELADA) {
-    return (
-      linha.etapas.find(
-        (etapa) => etapa.acompanhamento?.nu_situacao === SituacaoTrajetoria.CANCELADA,
-      ) ??
-      etapaAberta ??
-      null
-    );
-  }
-  return [...linha.etapas].reverse().find((etapa) => etapaEncerrada(etapa.acompanhamento)) ?? null;
+  return linha.etapa_atual;
 }
 
 export function nomeSituacao(situacao: SituacaoTrajetoria): string {
@@ -80,36 +30,32 @@ export function severidadeSituacao(
   return mapa[situacao];
 }
 
-export function classeEtapa(etapa: EtapaDaJornada, linha: JornadaLinha): string {
-  const situacao = etapa.acompanhamento?.nu_situacao;
-  if (situacao === SituacaoTrajetoria.CONCLUIDA || situacao === SituacaoTrajetoria.PULADA) {
-    return 'done';
-  }
-  if (etapaVencida(etapa)) {
+export function classeEtapa(etapa: EtapaDaJornada): string {
+  if (etapa.st_vencida) {
     return 'overdue';
   }
-  if (proximaEtapa(linha)?.modelo.seq_trajetoria_etapa === etapa.modelo.seq_trajetoria_etapa) {
-    return situacao === SituacaoTrajetoria.PAUSADA ? 'paused' : 'current';
-  }
-  if (situacao === SituacaoTrajetoria.CANCELADA) {
+  if (etapa.st_cancelada) {
     return 'cancelled';
+  }
+  if (etapa.st_atual) {
+    return etapa.nu_situacao === SituacaoTrajetoria.PAUSADA ? 'paused' : 'current';
+  }
+  if (etapa.st_concluida || etapa.st_pulada) {
+    return 'done';
   }
   return '';
 }
 
 export function tooltipEtapa(etapa: EtapaDaJornada): string {
-  const situacao = etapa.acompanhamento
-    ? nomeSituacao(etapa.acompanhamento.nu_situacao)
-    : 'Sem acompanhamento';
-  return `${etapa.modelo.ds_nome} · ${situacao}${etapaVencida(etapa) ? ' · Prazo vencido' : ''}`;
+  return `${etapa.ds_nome} · ${etapa.ds_situacao}${etapa.st_vencida ? ' · Prazo vencido' : ''}`;
 }
 
 export function textoProximaAcao(linha: JornadaLinha): string {
-  if (linha.pessoaTrajetoria.nu_situacao === SituacaoTrajetoria.CONCLUIDA) {
+  if (linha.jornada.st_concluida) {
     return 'Jornada concluída';
   }
-  if (linha.pessoaTrajetoria.nu_situacao === SituacaoTrajetoria.CANCELADA) {
+  if (linha.jornada.st_cancelada) {
     return 'Jornada cancelada';
   }
-  return proximaEtapa(linha)?.modelo.ds_nome ?? 'Sem etapa pendente';
+  return linha.proxima_acao?.ds_nome ?? 'Sem etapa pendente';
 }

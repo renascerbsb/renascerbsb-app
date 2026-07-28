@@ -33,7 +33,7 @@
             pTooltip="Pessoas vinculadas a alguma jornada que ainda não possuem líder."
           ></i>
         </div>
-        <strong>{{ carregando ? '—' : quantidadeSemLider }}</strong
+        <strong>{{ carregandoKpis ? '—' : (indicadores?.sem_lider ?? '—') }}</strong
         ><b>Precisam de distribuição</b
         ><small>Pessoas em jornada cuja liderança ainda não foi definida.</small>
       </div>
@@ -48,7 +48,7 @@
             pTooltip="Pessoas com jornada não iniciada, em andamento ou pausada."
           ></i>
         </div>
-        <strong>{{ indicadores?.pessoas_em_jornada ?? '—' }}</strong
+        <strong>{{ indicadores?.em_acompanhamento ?? '—' }}</strong
         ><b>Jornadas abertas</b><small>Pessoas que ainda possuem acompanhamento ativo.</small>
       </div>
       <span class="kpi-icon"><i class="pi pi-spinner"></i></span>
@@ -191,65 +191,67 @@
       </div>
     } @else {
       <p-table
-        [value]="linhasFiltradas"
+        [value]="linhas"
         [(selection)]="selecionadas"
-        dataKey="pessoaTrajetoria.seq_pessoa_trajetoria"
+        dataKey="jornada.seq_pessoa_trajetoria"
         [loading]="carregando"
+        [lazy]="true"
         [paginator]="true"
-        [rows]="10"
+        [rows]="consulta.pageSize"
+        [first]="primeiroRegistro"
+        [totalRecords]="totalRegistros"
         [rowsPerPageOptions]="[10, 20, 50]"
         [showCurrentPageReport]="true"
         currentPageReportTemplate="{first} a {last} de {totalRecords} jornadas"
-        sortMode="multiple"
+        sortMode="single"
+        [sortField]="consulta.sort"
+        [sortOrder]="consulta.order === 'desc' ? -1 : 1"
+        (onLazyLoad)="aoCarregarTabela($event)"
         responsiveLayout="scroll"
         styleClass="p-datatable-sm jornada-table"
       >
         <ng-template pTemplate="header"
           ><tr>
             <th class="selection-cell"><p-tableHeaderCheckbox /></th>
-            <th pSortableColumn="pessoa.ds_nome">Pessoa <p-sortIcon field="pessoa.ds_nome" /></th>
-            <th pSortableColumn="trajetoria.ds_nome">
-              Jornada <p-sortIcon field="trajetoria.ds_nome" />
-            </th>
+            <th pSortableColumn="pessoa">Pessoa <p-sortIcon field="pessoa" /></th>
+            <th pSortableColumn="trajetoria">Jornada <p-sortIcon field="trajetoria" /></th>
             <th>Progresso</th>
-            <th pSortableColumn="pessoa.lider.ds_nome">
-              Líder <p-sortIcon field="pessoa.lider.ds_nome" />
-            </th>
-            <th>Próxima ação</th>
+            <th pSortableColumn="lider">Líder <p-sortIcon field="lider" /></th>
+            <th pSortableColumn="proxima_acao">Próxima ação <p-sortIcon field="proxima_acao" /></th>
             <th class="actions-cell">Ações</th>
           </tr></ng-template
         >
         <ng-template pTemplate="body" let-linha>
           <tr
             [class.selected-row]="selecionadas.includes(linha)"
-            [class.no-leader-row]="!linha.pessoa.lider"
+            [class.no-leader-row]="linha.lideranca.sem_lider"
           >
             <td class="selection-cell"><p-tableCheckbox [value]="linha" /></td>
             <td>
               <div class="primary-cell">
                 <strong>{{ linha.pessoa.ds_nome }}</strong
-                ><small>{{ formatarTelefone(linha.pessoa) }}</small>
-                @if (linha.filial) {
-                  <small>{{ linha.filial.ds_nome }}</small>
+                ><small>{{ formatarTelefone(linha.pessoa.nr_telefone) }}</small>
+                @if (linha.pessoa.filial) {
+                  <small>{{ linha.pessoa.filial.ds_nome }}</small>
                 }
               </div>
             </td>
             <td>
               <div class="primary-cell">
-                <strong>{{ linha.trajetoria.ds_nome }}</strong
+                <strong>{{ linha.jornada.ds_nome }}</strong
                 ><p-tag
-                  [value]="nomeSituacao(linha.pessoaTrajetoria.nu_situacao)"
-                  [severity]="severidadeSituacao(linha.pessoaTrajetoria.nu_situacao)"
+                  [value]="nomeSituacao(linha.jornada.nu_situacao)"
+                  [severity]="severidadeSituacao(linha.jornada.nu_situacao)"
                   [rounded]="true"
                 />
               </div>
             </td>
             <td>
               <div class="progress-dots">
-                @for (etapa of linha.etapas; track etapa.modelo.seq_trajetoria_etapa) {
+                @for (etapa of linha.progresso.etapas; track etapa.seq_trajetoria_etapa) {
                   <span
                     class="progress-dot"
-                    [class]="classeEtapa(etapa, linha)"
+                    [class]="classeEtapa(etapa)"
                     [pTooltip]="tooltipEtapa(etapa)"
                     [attr.aria-label]="tooltipEtapa(etapa)"
                   ></span>
@@ -259,8 +261,8 @@
               </div>
             </td>
             <td>
-              @if (linha.pessoa.lider) {
-                {{ linha.pessoa.lider.ds_nome }}
+              @if (!linha.lideranca.sem_lider) {
+                {{ linha.lideranca.ds_nome }}
               } @else {
                 <p-tag value="Sem líder" severity="danger" [rounded]="true" />
               }
@@ -269,7 +271,7 @@
               @if (jornadaEncerrada(linha)) {
                 <p-tag
                   [value]="textoProximaAcao(linha)"
-                  [severity]="linha.pessoaTrajetoria.nu_situacao === 4 ? 'success' : 'danger'"
+                  [severity]="linha.jornada.nu_situacao === 4 ? 'success' : 'danger'"
                   [rounded]="true"
                 />
               } @else {
@@ -319,8 +321,6 @@
 <app-detalhe-jornada-drawer
   [visivel]="drawerVisivel"
   [linha]="linhaDetalhada"
-  [pessoas]="pessoas"
-  [etapasModelo]="etapasModelo"
   (fechar)="drawerVisivel = false"
   (solicitarEvolucao)="abrirModalEvolucao($event)"
 />
@@ -337,6 +337,7 @@
   [visivel]="modalEvolucaoVisivel"
   [linhaEvolucao]="linhaEvolucao"
   [etapaEvolucao]="etapaEvolucao"
+  [configuracaoEtapa]="configuracaoEtapaEvolucao"
   (fechar)="modalEvolucaoVisivel = false"
   (salvo)="aoRegistrarEvolucaoSalva()"
 />

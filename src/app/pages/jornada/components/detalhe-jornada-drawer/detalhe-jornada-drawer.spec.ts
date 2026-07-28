@@ -3,7 +3,6 @@ import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { vi } from 'vitest';
 
-import { PessoaLiderService } from '../../../../services/pessoa-lider.service';
 import { PessoaTrajetoriaService } from '../../../../services/pessoa-trajetoria.service';
 import { SituacaoTrajetoria } from '../../../../shared/enums/situacao-trajetoria.enum';
 import { JornadaLinha } from '../../interfaces/jornada.models';
@@ -11,19 +10,14 @@ import { DetalheJornadaDrawer } from './detalhe-jornada-drawer';
 
 describe('DetalheJornadaDrawer', () => {
   let component: DetalheJornadaDrawer;
-  let pessoaLiderService: { listar: ReturnType<typeof vi.fn> };
   let pessoaTrajetoriaService: { listarHistorico: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
-    pessoaLiderService = { listar: vi.fn(() => of([])) };
     pessoaTrajetoriaService = { listarHistorico: vi.fn(() => of([])) };
 
     await TestBed.configureTestingModule({
       imports: [DetalheJornadaDrawer],
-      providers: [
-        { provide: PessoaLiderService, useValue: pessoaLiderService },
-        { provide: PessoaTrajetoriaService, useValue: pessoaTrajetoriaService },
-      ],
+      providers: [{ provide: PessoaTrajetoriaService, useValue: pessoaTrajetoriaService }],
     })
       .overrideComponent(DetalheJornadaDrawer, { set: { template: '' } })
       .compileComponents();
@@ -31,26 +25,18 @@ describe('DetalheJornadaDrawer', () => {
     component = TestBed.createComponent(DetalheJornadaDrawer).componentInstance;
   });
 
-  it('carrega histórico e lideranças quando abre com uma linha', () => {
-    const linha = criarLinha();
-    component.linha = linha;
+  it('carrega somente o histórico ao abrir com uma linha agregada', () => {
+    component.linha = criarLinha();
     component.visivel = true;
 
     component.ngOnChanges({ visivel: new SimpleChange(false, true, false) });
 
     expect(component.aba).toBe('resumo');
+    expect(pessoaTrajetoriaService.listarHistorico).toHaveBeenCalledOnce();
     expect(pessoaTrajetoriaService.listarHistorico).toHaveBeenCalledWith(30);
-    expect(pessoaLiderService.listar).toHaveBeenCalledWith({
-      seq_pessoa: 10,
-      st_ativo: true,
-    });
-    expect(pessoaLiderService.listar).toHaveBeenCalledWith({
-      seq_pessoa: 10,
-      st_ativo: false,
-    });
   });
 
-  it('recarrega os detalhes quando a linha aberta é atualizada pelo pai', () => {
+  it('atualiza o histórico quando o pai recarrega a linha aberta', () => {
     const anterior = criarLinha();
     const atual = criarLinha();
     component.visivel = true;
@@ -59,6 +45,12 @@ describe('DetalheJornadaDrawer', () => {
     component.ngOnChanges({ linha: new SimpleChange(anterior, atual, false) });
 
     expect(pessoaTrajetoriaService.listarHistorico).toHaveBeenCalledWith(30);
+  });
+
+  it('obtém o nome da etapa do progresso agregado', () => {
+    component.linha = criarLinha();
+    expect(component.nomeEtapa(60)).toBe('Primeiro contato');
+    expect(component.nomeEtapa(999)).toBe('Etapa');
   });
 
   it('emite fechamento e solicitação de evolução sem alterar a linha', () => {
@@ -78,54 +70,53 @@ describe('DetalheJornadaDrawer', () => {
 });
 
 function criarLinha(): JornadaLinha {
+  const etapa = {
+    seq_pessoa_trajetoria_etapa: 50,
+    seq_trajetoria_etapa: 60,
+    seq_etapa_trajetoria: 1,
+    ds_nome: 'Primeiro contato',
+    nr_ordem: 1,
+    nu_situacao: SituacaoTrajetoria.EM_ANDAMENTO,
+    ds_situacao: 'EM_ANDAMENTO',
+    dt_inicio: '2026-07-20',
+    dt_conclusao: null,
+    ds_observacao: null,
+    ds_motivo_pulo: null,
+    nr_prazo_dias: 3,
+    st_ativo_configuracao: true,
+    st_atual: true,
+    st_concluida: false,
+    st_futura: false,
+    st_pulada: false,
+    st_cancelada: false,
+    st_vencida: false,
+  };
   return {
-    pessoaTrajetoria: {
+    pessoa: { seq_pessoa: 10, ds_nome: 'Aldo', nr_telefone: null, st_ativo: true, filial: null },
+    jornada: {
       seq_pessoa_trajetoria: 30,
-      seq_pessoa: 10,
       seq_trajetoria: 40,
-      nu_situacao: SituacaoTrajetoria.NAO_INICIADA,
+      ds_nome: 'Integração',
+      nu_situacao: SituacaoTrajetoria.EM_ANDAMENTO,
+      ds_situacao: 'EM_ANDAMENTO',
       dt_inicio: '2026-07-20',
       dt_conclusao: null,
       ds_observacao: null,
-    } as JornadaLinha['pessoaTrajetoria'],
-    pessoa: {
-      seq_pessoa: 10,
-      ds_nome: 'Aldo',
-      st_ativo: true,
-      seq_filial: 1,
-      lider: null,
-    } as JornadaLinha['pessoa'],
-    trajetoria: {
-      seq_trajetoria: 40,
-      ds_nome: 'Integração',
-      nr_versao: 1,
-      st_ativo: true,
-    } as JornadaLinha['trajetoria'],
-    filial: null,
-    etapas: [
-      {
-        modelo: {
-          seq_trajetoria_etapa: 60,
-          seq_trajetoria: 40,
-          seq_etapa_trajetoria: 1,
-          ds_nome: 'Primeiro contato',
-          nr_ordem: 1,
-          st_obrigatoria: true,
-          st_permite_pular: true,
-          st_exige_observacao: false,
-          st_ativo: true,
-        } as JornadaLinha['etapas'][number]['modelo'],
-        acompanhamento: {
-          seq_pessoa_trajetoria_etapa: 50,
-          seq_pessoa_trajetoria: 30,
-          seq_trajetoria_etapa: 60,
-          nu_situacao: SituacaoTrajetoria.NAO_INICIADA,
-          dt_inicio: null,
-          dt_conclusao: null,
-          ds_observacao: null,
-          ds_motivo_pulo: null,
-        } as JornadaLinha['etapas'][number]['acompanhamento'],
-      },
-    ],
+      st_pausada: false,
+      st_cancelada: false,
+      st_concluida: false,
+    },
+    lideranca: { seq_lider: null, ds_nome: null, sem_lider: true },
+    etapa_atual: etapa,
+    proxima_acao: etapa,
+    progresso: {
+      total_etapas: 1,
+      etapas_concluidas: 0,
+      etapas_puladas: 0,
+      etapas_canceladas: 0,
+      percentual: 0,
+      etapas: [etapa],
+    },
+    dh_ultima_evolucao: null,
   };
 }

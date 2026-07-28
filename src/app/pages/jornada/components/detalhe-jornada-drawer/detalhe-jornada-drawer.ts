@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import {
   Component,
+  DestroyRef,
   EventEmitter,
   Input,
   OnChanges,
@@ -8,16 +9,14 @@ import {
   SimpleChanges,
   inject,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ButtonModule } from 'primeng/button';
 import { DrawerModule } from 'primeng/drawer';
 import { TagModule } from 'primeng/tag';
-import { finalize, forkJoin } from 'rxjs';
+import { Subject, catchError, map, of, switchMap, tap } from 'rxjs';
 
-import { PessoaLider, PessoaLiderService } from '../../../../services/pessoa-lider.service';
 import { PessoaTrajetoriaEtapa } from '../../../../services/pessoa-trajetoria-etapa.service';
 import { PessoaTrajetoriaService } from '../../../../services/pessoa-trajetoria.service';
-import { Pessoa } from '../../../../services/pessoa.service';
-import { TrajetoriaEtapa } from '../../../../services/trajetoria-etapa.service';
 import { JornadaLinha } from '../../interfaces/jornada.models';
 import {
   classeEtapa,
@@ -37,21 +36,20 @@ type AbaDrawer = 'resumo' | 'jornada' | 'historico' | 'lideranca';
   styleUrl: './detalhe-jornada-drawer.scss',
 })
 export class DetalheJornadaDrawer implements OnChanges {
-  private readonly pessoaLiderService = inject(PessoaLiderService);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly pessoaTrajetoriaService = inject(PessoaTrajetoriaService);
+  private readonly consultasHistorico$ = new Subject<number>();
 
   @Input() visivel = false;
   @Input() linha: JornadaLinha | null = null;
-  @Input() pessoas: readonly Pessoa[] = [];
-  @Input() etapasModelo: readonly TrajetoriaEtapa[] = [];
 
   @Output() fechar = new EventEmitter<void>();
   @Output() solicitarEvolucao = new EventEmitter<JornadaLinha>();
 
   aba: AbaDrawer = 'resumo';
   historico: PessoaTrajetoriaEtapa[] = [];
-  historicoLideranca: PessoaLider[] = [];
   carregando = false;
+  erroHistorico = '';
 
   readonly nomeSituacao = nomeSituacao;
   readonly severidadeSituacao = severidadeSituacao;
@@ -59,6 +57,29 @@ export class DetalheJornadaDrawer implements OnChanges {
   readonly textoProximaAcao = textoProximaAcao;
   readonly jornadaEncerrada = jornadaEncerrada;
   readonly etapaParaEvolucao = etapaParaEvolucao;
+
+  constructor() {
+    this.consultasHistorico$
+      .pipe(
+        tap(() => {
+          this.carregando = true;
+          this.erroHistorico = '';
+          this.historico = [];
+        }),
+        switchMap((id) =>
+          this.pessoaTrajetoriaService.listarHistorico(id).pipe(
+            map((historico) => ({ historico, erro: '' })),
+            catchError(() => of({ historico: [], erro: 'Não foi possível carregar o histórico.' })),
+          ),
+        ),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(({ historico, erro }) => {
+        this.carregando = false;
+        this.historico = historico;
+        this.erroHistorico = erro;
+      });
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['visivel']?.currentValue && !changes['visivel'].previousValue) {
@@ -69,7 +90,7 @@ export class DetalheJornadaDrawer implements OnChanges {
       this.linha &&
       (changes['linha'] || (changes['visivel']?.currentValue && !changes['visivel'].previousValue))
     ) {
-      this.carregarDetalhes();
+      this.carregarHistorico();
     }
   }
 
@@ -83,56 +104,18 @@ export class DetalheJornadaDrawer implements OnChanges {
     }
   }
 
-  nomeLider(seqLider: number): string {
-    return (
-      this.pessoas.find((pessoa) => pessoa.seq_pessoa === seqLider)?.ds_nome ??
-      'Líder não encontrado'
-    );
-  }
-
   nomeEtapa(seqEtapa: number): string {
     return (
-      this.etapasModelo.find((etapa) => etapa.seq_trajetoria_etapa === seqEtapa)?.ds_nome ?? 'Etapa'
+      this.linha?.progresso.etapas.find((etapa) => etapa.seq_trajetoria_etapa === seqEtapa)
+        ?.ds_nome ?? 'Etapa'
     );
   }
 
-  private carregarDetalhes(): void {
+  private carregarHistorico(): void {
     const linha = this.linha;
     if (!linha) {
       return;
     }
-    this.carregando = true;
-    this.historico = [];
-    this.historicoLideranca = [];
-    forkJoin({
-      historico: this.pessoaTrajetoriaService.listarHistorico(
-        linha.pessoaTrajetoria.seq_pessoa_trajetoria,
-      ),
-      liderancasAtivas: this.pessoaLiderService.listar({
-        seq_pessoa: linha.pessoa.seq_pessoa,
-        st_ativo: true,
-      }),
-      liderancasInativas: this.pessoaLiderService.listar({
-        seq_pessoa: linha.pessoa.seq_pessoa,
-        st_ativo: false,
-      }),
-    })
-      .pipe(finalize(() => (this.carregando = false)))
-      .subscribe(({ historico, liderancasAtivas, liderancasInativas }) => {
-        this.historico = historico.sort(
-          (a, b) =>
-            this.ordemEtapa(a.seq_trajetoria_etapa) - this.ordemEtapa(b.seq_trajetoria_etapa),
-        );
-        this.historicoLideranca = [...liderancasAtivas, ...liderancasInativas].sort((a, b) =>
-          b.dt_inicio.localeCompare(a.dt_inicio),
-        );
-      });
-  }
-
-  private ordemEtapa(seqEtapa: number): number {
-    return (
-      this.etapasModelo.find((etapa) => etapa.seq_trajetoria_etapa === seqEtapa)?.nr_ordem ??
-      Number.MAX_SAFE_INTEGER
-    );
+    this.consultasHistorico$.next(linha.jornada.seq_pessoa_trajetoria);
   }
 }

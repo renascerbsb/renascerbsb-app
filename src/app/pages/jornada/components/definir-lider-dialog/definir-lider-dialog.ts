@@ -22,6 +22,11 @@ import {
 } from '../../../../services/pessoa-lider.service';
 import { Pessoa } from '../../../../services/pessoa.service';
 
+export interface PessoaSelecionadaLideranca {
+  seq_pessoa: number;
+  ds_nome: string;
+}
+
 @Component({
   selector: 'app-definir-lider-dialog',
   imports: [FormsModule, ButtonModule, DialogModule, InputTextModule, SelectModule, TextareaModule],
@@ -33,7 +38,7 @@ export class DefinirLiderDialog implements OnChanges {
   private readonly messageService = inject(MessageService);
 
   @Input() visivel = false;
-  @Input() pessoas: readonly Pessoa[] = [];
+  @Input() pessoas: readonly PessoaSelecionadaLideranca[] = [];
   @Input() lideres: readonly Pessoa[] = [];
 
   @Output() fechar = new EventEmitter<void>();

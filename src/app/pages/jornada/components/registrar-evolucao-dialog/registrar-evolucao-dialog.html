@@ -24,10 +24,10 @@
           <small>Pessoa</small><strong>{{ linhaEvolucao.pessoa.ds_nome }}</strong>
         </div>
         <div>
-          <small>Jornada</small><strong>{{ linhaEvolucao.trajetoria.ds_nome }}</strong>
+          <small>Jornada</small><strong>{{ linhaEvolucao.jornada.ds_nome }}</strong>
         </div>
         <div>
-          <small>Etapa atual</small><strong>{{ etapaEvolucao.modelo.ds_nome }}</strong>
+          <small>Etapa atual</small><strong>{{ etapaEvolucao.ds_nome }}</strong>
         </div>
       </div>
 
@@ -41,8 +41,8 @@
             <h3>Situação da jornada</h3>
           </div>
           <p-tag
-            [value]="nomeSituacao(linhaEvolucao.pessoaTrajetoria.nu_situacao)"
-            [severity]="severidadeSituacao(linhaEvolucao.pessoaTrajetoria.nu_situacao)"
+            [value]="nomeSituacao(linhaEvolucao.jornada.nu_situacao)"
+            [severity]="severidadeSituacao(linhaEvolucao.jornada.nu_situacao)"
             [rounded]="true"
           />
         </div>
@@ -89,18 +89,16 @@
             <h3>Evolução da etapa</h3>
           </div>
           <p-tag
-            [value]="nomeSituacao(etapaEvolucao.acompanhamento!.nu_situacao)"
-            [severity]="severidadeSituacao(etapaEvolucao.acompanhamento!.nu_situacao)"
+            [value]="nomeSituacao(etapaEvolucao.nu_situacao)"
+            [severity]="severidadeSituacao(etapaEvolucao.nu_situacao)"
             [rounded]="true"
           />
         </div>
 
         <div class="stage-metadata">
-          <span><b>Etapa:</b> {{ etapaEvolucao.modelo.ds_nome }}</span>
-          <span><b>Ordem:</b> {{ etapaEvolucao.modelo.nr_ordem }}</span>
-          <span>
-            <b>Obrigatória:</b> {{ etapaEvolucao.modelo.st_obrigatoria ? 'Sim' : 'Não' }}
-          </span>
+          <span><b>Etapa:</b> {{ etapaEvolucao.ds_nome }}</span>
+          <span><b>Ordem:</b> {{ etapaEvolucao.nr_ordem }}</span>
+          <span> <b>Obrigatória:</b> {{ configuracaoEtapa?.st_obrigatoria ? 'Sim' : 'Não' }} </span>
         </div>
 
         <div class="field">
@@ -136,8 +134,7 @@
               [(ngModel)]="dataInicioEtapaEvolucao"
             />
             @if (
-              situacaoEtapaEvolucao !== etapaEvolucao.acompanhamento!.nu_situacao &&
-              situacaoEtapaEvolucao !== 2
+              situacaoEtapaEvolucao !== etapaEvolucao.nu_situacao && situacaoEtapaEvolucao !== 2
             ) {
               <small class="field-help">
                 Nesta transição, o backend preserva o início existente; ao concluir sem início,
@@ -189,7 +186,7 @@
           <label for="observacaoEvolucao">
             Observação
             @if (
-              etapaEvolucao.modelo.st_exige_observacao &&
+              configuracaoEtapa?.st_exige_observacao &&
               (situacaoEtapaEvolucao === 4 || situacaoEtapaEvolucao === 6)
             ) {
               *
@@ -215,32 +212,28 @@
         </div>
         <div class="timeline compact-timeline">
           @for (
-            etapa of linhaEvolucao.etapas;
-            track etapa.modelo.seq_trajetoria_etapa;
+            etapa of linhaEvolucao.progresso.etapas;
+            track etapa.seq_trajetoria_etapa;
             let indice = $index
           ) {
             <div class="timeline-item" [class.editing-stage]="etapa === etapaEvolucao">
-              <span class="timeline-dot" [class]="classeEtapa(etapa, linhaEvolucao)">
-                @if (classeEtapa(etapa, linhaEvolucao) === 'done') {
+              <span class="timeline-dot" [class]="classeEtapa(etapa)">
+                @if (classeEtapa(etapa) === 'done') {
                   <i class="pi pi-check"></i>
                 } @else {
                   {{ indice + 1 }}
                 }
               </span>
               <div>
-                <strong>{{ etapa.modelo.ds_nome }}</strong>
+                <strong>{{ etapa.ds_nome }}</strong>
                 <small>
-                  {{
-                    etapa.acompanhamento
-                      ? nomeSituacao(etapa.acompanhamento.nu_situacao)
-                      : 'Sem acompanhamento'
-                  }}
+                  {{ etapa.ds_situacao }}
                 </small>
                 <small>
                   Início:
-                  {{ (etapa.acompanhamento?.dt_inicio | date: 'dd/MM/yyyy' : 'UTC') || '-' }}
+                  {{ (etapa.dt_inicio | date: 'dd/MM/yyyy' : 'UTC') || '-' }}
                   · Conclusão:
-                  {{ (etapa.acompanhamento?.dt_conclusao | date: 'dd/MM/yyyy' : 'UTC') || '-' }}
+                  {{ (etapa.dt_conclusao | date: 'dd/MM/yyyy' : 'UTC') || '-' }}
                 </small>
               </div>
             </div>

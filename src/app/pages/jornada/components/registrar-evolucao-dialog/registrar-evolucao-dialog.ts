@@ -24,6 +24,7 @@ import {
   PessoaTrajetoria,
   PessoaTrajetoriaService,
 } from '../../../../services/pessoa-trajetoria.service';
+import { TrajetoriaEtapa } from '../../../../services/trajetoria-etapa.service';
 import {
   SITUACOES_TRAJETORIA,
   SituacaoTrajetoria,
@@ -65,6 +66,7 @@ export class RegistrarEvolucaoDialog implements OnChanges {
   @Input() visivel = false;
   @Input() linhaEvolucao: JornadaLinha | null = null;
   @Input() etapaEvolucao: EtapaDaJornada | null = null;
+  @Input() configuracaoEtapa: TrajetoriaEtapa | null = null;
 
   @Output() fechar = new EventEmitter<void>();
   @Output() salvo = new EventEmitter<void>();
@@ -106,12 +108,12 @@ export class RegistrarEvolucaoDialog implements OnChanges {
   get jornadaFoiAlterada(): boolean {
     return (
       !!this.linhaEvolucao &&
-      this.situacaoJornadaEvolucao !== this.linhaEvolucao.pessoaTrajetoria.nu_situacao
+      this.situacaoJornadaEvolucao !== this.linhaEvolucao.jornada.nu_situacao
     );
   }
 
   get etapaFoiAlterada(): boolean {
-    const atual = this.etapaEvolucao?.acompanhamento;
+    const atual = this.etapaEvolucao;
     return (
       !!atual &&
       (this.situacaoEtapaEvolucao !== atual.nu_situacao ||
@@ -125,7 +127,7 @@ export class RegistrarEvolucaoDialog implements OnChanges {
   }
 
   get podeEditarDataInicioEtapa(): boolean {
-    const situacaoAtual = this.etapaEvolucao?.acompanhamento?.nu_situacao;
+    const situacaoAtual = this.etapaEvolucao?.nu_situacao;
     return (
       !this.modoConsultaEvolucao &&
       !this.salvandoEvolucao &&
@@ -135,7 +137,7 @@ export class RegistrarEvolucaoDialog implements OnChanges {
   }
 
   get situacoesEtapaEvolucao(): Opcao<SituacaoTrajetoria>[] {
-    const atual = this.etapaEvolucao?.acompanhamento?.nu_situacao;
+    const atual = this.etapaEvolucao?.nu_situacao;
     if (!atual) {
       return [];
     }
@@ -162,14 +164,14 @@ export class RegistrarEvolucaoDialog implements OnChanges {
     return SITUACOES_TRAJETORIA.filter((item) => permitidas.has(item.value)).map((item) => ({
       ...item,
       disabled:
-        item.value === SituacaoTrajetoria.PULADA && !this.etapaEvolucao?.modelo.st_permite_pular,
+        item.value === SituacaoTrajetoria.PULADA && !this.configuracaoEtapa?.st_permite_pular,
     }));
   }
 
   registrarEvolucao(): void {
     const linha = this.linhaEvolucao;
     const etapa = this.etapaEvolucao;
-    if (!linha || !etapa?.acompanhamento) {
+    if (!linha || !etapa || !this.configuracaoEtapa) {
       return;
     }
     if (this.modoConsultaEvolucao || !this.validarEvolucao()) {
@@ -220,12 +222,12 @@ export class RegistrarEvolucaoDialog implements OnChanges {
 
   private carregarFormulario(): void {
     const linha = this.linhaEvolucao;
-    const acompanhamento = this.etapaEvolucao?.acompanhamento;
+    const acompanhamento = this.etapaEvolucao;
     if (!linha || !acompanhamento) {
       return;
     }
-    this.situacaoJornadaEvolucao = linha.pessoaTrajetoria.nu_situacao;
-    this.dataConclusaoJornadaEvolucao = linha.pessoaTrajetoria.dt_conclusao;
+    this.situacaoJornadaEvolucao = linha.jornada.nu_situacao;
+    this.dataConclusaoJornadaEvolucao = linha.jornada.dt_conclusao;
     this.situacaoEtapaEvolucao = acompanhamento.nu_situacao;
     this.dataInicioEtapaEvolucao = acompanhamento.dt_inicio;
     this.dataConclusaoEtapaEvolucao = acompanhamento.dt_conclusao;
@@ -236,7 +238,7 @@ export class RegistrarEvolucaoDialog implements OnChanges {
 
   private validarEvolucao(): boolean {
     const etapa = this.etapaEvolucao;
-    if (!etapa?.acompanhamento) {
+    if (!etapa || !this.configuracaoEtapa) {
       return false;
     }
     const situacao = this.situacaoEtapaEvolucao;
@@ -267,7 +269,7 @@ export class RegistrarEvolucaoDialog implements OnChanges {
       return this.exibirValidacaoEvolucao('Informe o motivo do pulo.');
     }
     if (
-      etapa.modelo.st_exige_observacao &&
+      this.configuracaoEtapa.st_exige_observacao &&
       [SituacaoTrajetoria.CONCLUIDA, SituacaoTrajetoria.PULADA].includes(situacao) &&
       !this.observacaoEvolucao.trim()
     ) {
@@ -290,7 +292,7 @@ export class RegistrarEvolucaoDialog implements OnChanges {
     etapa: EtapaDaJornada,
     alterada: boolean,
   ): Observable<unknown> {
-    const acompanhamento = etapa.acompanhamento!;
+    const acompanhamento = etapa;
     if (!alterada) {
       return of(null);
     }
@@ -302,22 +304,17 @@ export class RegistrarEvolucaoDialog implements OnChanges {
       if (!dataEvento) {
         return of(null);
       }
-      return this.pessoaTrajetoriaService.registrarEvolucao(
-        linha.pessoaTrajetoria.seq_pessoa_trajetoria,
-        {
-          seq_pessoa_trajetoria_etapa: acompanhamento.seq_pessoa_trajetoria_etapa,
-          nu_situacao: this.situacaoEtapaEvolucao,
-          dt_evento: dataEvento,
-          ds_observacao: this.observacaoEvolucao.trim() || null,
-          ds_motivo_pulo:
-            this.situacaoEtapaEvolucao === SituacaoTrajetoria.PULADA
-              ? this.motivoPulo.trim()
-              : null,
-        },
-      );
+      return this.pessoaTrajetoriaService.registrarEvolucao(linha.jornada.seq_pessoa_trajetoria, {
+        seq_pessoa_trajetoria_etapa: acompanhamento.seq_pessoa_trajetoria_etapa,
+        nu_situacao: this.situacaoEtapaEvolucao,
+        dt_evento: dataEvento,
+        ds_observacao: this.observacaoEvolucao.trim() || null,
+        ds_motivo_pulo:
+          this.situacaoEtapaEvolucao === SituacaoTrajetoria.PULADA ? this.motivoPulo.trim() : null,
+      });
     }
     return this.pessoaTrajetoriaEtapaService.atualizar(acompanhamento.seq_pessoa_trajetoria_etapa, {
-      seq_pessoa_trajetoria: acompanhamento.seq_pessoa_trajetoria,
+      seq_pessoa_trajetoria: linha.jornada.seq_pessoa_trajetoria,
       seq_trajetoria_etapa: acompanhamento.seq_trajetoria_etapa,
       nu_situacao: this.situacaoEtapaEvolucao,
       dt_inicio: this.dataInicioEtapaEvolucao,
@@ -338,13 +335,13 @@ export class RegistrarEvolucaoDialog implements OnChanges {
     const encerrada = [SituacaoTrajetoria.CONCLUIDA, SituacaoTrajetoria.CANCELADA].includes(
       this.situacaoJornadaEvolucao,
     );
-    return this.pessoaTrajetoriaService.atualizar(linha.pessoaTrajetoria.seq_pessoa_trajetoria, {
-      seq_pessoa: linha.pessoaTrajetoria.seq_pessoa,
-      seq_trajetoria: linha.pessoaTrajetoria.seq_trajetoria,
+    return this.pessoaTrajetoriaService.atualizar(linha.jornada.seq_pessoa_trajetoria, {
+      seq_pessoa: linha.pessoa.seq_pessoa,
+      seq_trajetoria: linha.jornada.seq_trajetoria,
       nu_situacao: this.situacaoJornadaEvolucao,
-      dt_inicio: linha.pessoaTrajetoria.dt_inicio,
+      dt_inicio: linha.jornada.dt_inicio,
       dt_conclusao: encerrada ? this.dataConclusaoJornadaEvolucao : null,
-      ds_observacao: linha.pessoaTrajetoria.ds_observacao,
+      ds_observacao: linha.jornada.ds_observacao,
     });
   }
 

@@ -42,30 +42,17 @@ describe('RegistrarEvolucaoDialog', () => {
     component = TestBed.createComponent(RegistrarEvolucaoDialog).componentInstance;
   });
 
-  it('carrega cópias dos dados atuais ao abrir, sem alterar a linha recebida', () => {
+  it('carrega cópias dos dados agregados sem alterar a linha recebida', () => {
     const linha = criarLinha();
     abrirModal(linha);
 
     expect(component.situacaoEtapaEvolucao).toBe(SituacaoTrajetoria.NAO_INICIADA);
     expect(component.observacaoEvolucao).toBe('Observação atual');
-
     component.observacaoEvolucao = 'Cópia editada';
-
-    expect(linha.etapas[0].acompanhamento?.ds_observacao).toBe('Observação atual');
+    expect(linha.progresso.etapas[0].ds_observacao).toBe('Observação atual');
   });
 
-  it('emite o fechamento somente quando não está salvando', () => {
-    const fechar = vi.fn();
-    component.fechar.subscribe(fechar);
-
-    component.solicitarFechamento();
-    component.salvandoEvolucao = true;
-    component.solicitarFechamento();
-
-    expect(fechar).toHaveBeenCalledOnce();
-  });
-
-  it('mantém o payload da evolução por mudança de situação e emite sucesso', () => {
+  it('mantém o POST de evolução por mudança de situação', () => {
     const linha = criarLinha();
     const salvo = vi.fn();
     component.salvo.subscribe(salvo);
@@ -87,7 +74,7 @@ describe('RegistrarEvolucaoDialog', () => {
     expect(salvo).toHaveBeenCalledOnce();
   });
 
-  it('mantém o PUT da etapa quando somente os demais campos são alterados', () => {
+  it('preserva o PUT existente quando somente os demais campos são alterados', () => {
     const linha = criarLinha();
     abrirModal(linha);
     component.observacaoEvolucao = 'Observação revisada';
@@ -106,33 +93,16 @@ describe('RegistrarEvolucaoDialog', () => {
     expect(pessoaTrajetoriaService.registrarEvolucao).not.toHaveBeenCalled();
   });
 
-  it('salva a etapa antes da situação da Jornada, preservando os dois payloads', () => {
+  it('preserva a validação de observação exigida pela configuração da etapa', () => {
     const linha = criarLinha();
-    abrirModal(linha);
-    component.situacaoEtapaEvolucao = SituacaoTrajetoria.EM_ANDAMENTO;
-    component.dataInicioEtapaEvolucao = '2026-07-24';
-    component.situacaoJornadaEvolucao = SituacaoTrajetoria.EM_ANDAMENTO;
+    abrirModal(linha, true);
+    component.situacaoEtapaEvolucao = SituacaoTrajetoria.CONCLUIDA;
+    component.dataConclusaoEtapaEvolucao = '2026-07-24';
+    component.observacaoEvolucao = '';
 
     component.registrarEvolucao();
 
-    expect(pessoaTrajetoriaService.registrarEvolucao).toHaveBeenCalledWith(30, {
-      seq_pessoa_trajetoria_etapa: 50,
-      nu_situacao: SituacaoTrajetoria.EM_ANDAMENTO,
-      dt_evento: '2026-07-24',
-      ds_observacao: 'Observação atual',
-      ds_motivo_pulo: null,
-    });
-    expect(pessoaTrajetoriaService.atualizar).toHaveBeenCalledWith(30, {
-      seq_pessoa: 10,
-      seq_trajetoria: 40,
-      nu_situacao: SituacaoTrajetoria.EM_ANDAMENTO,
-      dt_inicio: '2026-07-20',
-      dt_conclusao: null,
-      ds_observacao: null,
-    });
-    expect(pessoaTrajetoriaService.registrarEvolucao.mock.invocationCallOrder[0]).toBeLessThan(
-      pessoaTrajetoriaService.atualizar.mock.invocationCallOrder[0],
-    );
+    expect(pessoaTrajetoriaService.registrarEvolucao).not.toHaveBeenCalled();
   });
 
   it('preserva o formulário e não emite sucesso quando a evolução falha', () => {
@@ -160,66 +130,77 @@ describe('RegistrarEvolucaoDialog', () => {
     expect(salvo).not.toHaveBeenCalled();
   });
 
-  function abrirModal(linha: JornadaLinha): void {
+  function abrirModal(linha: JornadaLinha, exigeObservacao = false): void {
     component.linhaEvolucao = linha;
-    component.etapaEvolucao = linha.etapas[0];
+    component.etapaEvolucao = linha.etapa_atual;
+    component.configuracaoEtapa = {
+      seq_trajetoria_etapa: 60,
+      seq_trajetoria: 40,
+      seq_etapa_trajetoria: 1,
+      ds_nome: 'Primeiro contato',
+      nr_ordem: 1,
+      st_obrigatoria: true,
+      st_permite_pular: true,
+      st_exige_observacao: exigeObservacao,
+      st_ativo: true,
+      seq_usuario_inclusao: 1,
+      seq_usuario_alteracao: null,
+      dh_inclusao: '2026-07-20T10:00:00',
+      dh_alteracao: null,
+    };
     component.visivel = true;
-    component.ngOnChanges({
-      visivel: new SimpleChange(false, true, false),
-    });
+    component.ngOnChanges({ visivel: new SimpleChange(false, true, false) });
   }
 });
 
 function criarLinha(): JornadaLinha {
+  const etapa = {
+    seq_pessoa_trajetoria_etapa: 50,
+    seq_trajetoria_etapa: 60,
+    seq_etapa_trajetoria: 1,
+    ds_nome: 'Primeiro contato',
+    nr_ordem: 1,
+    nu_situacao: SituacaoTrajetoria.NAO_INICIADA,
+    ds_situacao: 'NAO_INICIADA',
+    dt_inicio: null,
+    dt_conclusao: null,
+    ds_observacao: 'Observação atual',
+    ds_motivo_pulo: null,
+    nr_prazo_dias: 3,
+    st_ativo_configuracao: true,
+    st_atual: true,
+    st_concluida: false,
+    st_futura: false,
+    st_pulada: false,
+    st_cancelada: false,
+    st_vencida: false,
+  };
   return {
-    pessoaTrajetoria: {
+    pessoa: { seq_pessoa: 10, ds_nome: 'Aldo', nr_telefone: null, st_ativo: true, filial: null },
+    jornada: {
       seq_pessoa_trajetoria: 30,
-      seq_pessoa: 10,
       seq_trajetoria: 40,
+      ds_nome: 'Integração',
       nu_situacao: SituacaoTrajetoria.NAO_INICIADA,
+      ds_situacao: 'NAO_INICIADA',
       dt_inicio: '2026-07-20',
       dt_conclusao: null,
       ds_observacao: null,
-    } as JornadaLinha['pessoaTrajetoria'],
-    pessoa: {
-      seq_pessoa: 10,
-      ds_nome: 'Aldo',
-      st_ativo: true,
-      dh_inclusao: '2026-07-20T10:00:00',
-      seq_filial: 1,
-      lider: null,
-    } as JornadaLinha['pessoa'],
-    trajetoria: {
-      seq_trajetoria: 40,
-      ds_nome: 'Integração',
-      nr_versao: 1,
-      st_ativo: true,
-    } as JornadaLinha['trajetoria'],
-    filial: null,
-    etapas: [
-      {
-        modelo: {
-          seq_trajetoria_etapa: 60,
-          seq_trajetoria: 40,
-          seq_etapa_trajetoria: 1,
-          ds_nome: 'Primeiro contato',
-          nr_ordem: 1,
-          st_obrigatoria: true,
-          st_permite_pular: true,
-          st_exige_observacao: false,
-          st_ativo: true,
-        } as JornadaLinha['etapas'][number]['modelo'],
-        acompanhamento: {
-          seq_pessoa_trajetoria_etapa: 50,
-          seq_pessoa_trajetoria: 30,
-          seq_trajetoria_etapa: 60,
-          nu_situacao: SituacaoTrajetoria.NAO_INICIADA,
-          dt_inicio: null,
-          dt_conclusao: null,
-          ds_observacao: 'Observação atual',
-          ds_motivo_pulo: null,
-        } as JornadaLinha['etapas'][number]['acompanhamento'],
-      },
-    ],
+      st_pausada: false,
+      st_cancelada: false,
+      st_concluida: false,
+    },
+    lideranca: { seq_lider: null, ds_nome: null, sem_lider: true },
+    etapa_atual: etapa,
+    proxima_acao: etapa,
+    progresso: {
+      total_etapas: 1,
+      etapas_concluidas: 0,
+      etapas_puladas: 0,
+      etapas_canceladas: 0,
+      percentual: 0,
+      etapas: [etapa],
+    },
+    dh_ultima_evolucao: null,
   };
 }

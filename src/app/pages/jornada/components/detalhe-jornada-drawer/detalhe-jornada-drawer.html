@@ -25,38 +25,41 @@
         Liderança
       </button>
     </div>
-    @if (carregando && (aba === 'historico' || aba === 'lideranca')) {
+    @if (carregando && aba === 'historico') {
       <div class="load-state"><i class="pi pi-spin pi-spinner"></i> Carregando detalhes...</div>
+    } @else if (erroHistorico && aba === 'historico') {
+      <div class="load-state error-state">
+        <i class="pi pi-exclamation-circle"></i> {{ erroHistorico }}
+      </div>
     } @else if (aba === 'resumo') {
       <div class="summary-grid">
         <div>
-          <small>Jornada</small><strong>{{ linhaAtual.trajetoria.ds_nome }}</strong>
+          <small>Jornada</small><strong>{{ linhaAtual.jornada.ds_nome }}</strong>
         </div>
         <div>
-          <small>Situação</small
-          ><strong>{{ nomeSituacao(linhaAtual.pessoaTrajetoria.nu_situacao) }}</strong>
+          <small>Situação</small><strong>{{ nomeSituacao(linhaAtual.jornada.nu_situacao) }}</strong>
         </div>
         <div>
-          <small>Líder</small><strong>{{ linhaAtual.pessoa.lider?.ds_nome || 'Sem líder' }}</strong>
+          <small>Líder</small><strong>{{ linhaAtual.lideranca.ds_nome || 'Sem líder' }}</strong>
         </div>
         <div>
           <small>Próxima ação</small><strong>{{ textoProximaAcao(linhaAtual) }}</strong>
         </div>
         <div>
           <small>Início</small
-          ><strong>{{ linhaAtual.pessoaTrajetoria.dt_inicio | date: 'dd/MM/yyyy' : 'UTC' }}</strong>
+          ><strong>{{ linhaAtual.jornada.dt_inicio | date: 'dd/MM/yyyy' : 'UTC' }}</strong>
         </div>
         <div>
           <small>Conclusão</small
           ><strong>{{
-            (linhaAtual.pessoaTrajetoria.dt_conclusao | date: 'dd/MM/yyyy' : 'UTC') || '-'
+            (linhaAtual.jornada.dt_conclusao | date: 'dd/MM/yyyy' : 'UTC') || '-'
           }}</strong>
         </div>
       </div>
-      @if (linhaAtual.pessoaTrajetoria.ds_observacao) {
+      @if (linhaAtual.jornada.ds_observacao) {
         <section class="detail-note">
           <small>Observação da jornada</small>
-          <p>{{ linhaAtual.pessoaTrajetoria.ds_observacao }}</p>
+          <p>{{ linhaAtual.jornada.ds_observacao }}</p>
         </section>
       }
       <div class="drawer-actions">
@@ -70,30 +73,23 @@
     } @else if (aba === 'jornada') {
       <div class="timeline">
         @for (
-          etapa of linhaAtual.etapas;
-          track etapa.modelo.seq_trajetoria_etapa;
+          etapa of linhaAtual.progresso.etapas;
+          track etapa.seq_trajetoria_etapa;
           let indice = $index
         ) {
           <div class="timeline-item">
-            <span class="timeline-dot" [class]="classeEtapa(etapa, linhaAtual)">
-              @if (classeEtapa(etapa, linhaAtual) === 'done') {
+            <span class="timeline-dot" [class]="classeEtapa(etapa)">
+              @if (classeEtapa(etapa) === 'done') {
                 <i class="pi pi-check"></i>
               } @else {
                 {{ indice + 1 }}
               }
             </span>
             <div>
-              <strong>{{ etapa.modelo.ds_nome }}</strong
-              ><small>{{
-                etapa.acompanhamento
-                  ? nomeSituacao(etapa.acompanhamento.nu_situacao)
-                  : 'Sem acompanhamento'
-              }}</small>
-              @if (etapa.acompanhamento?.dt_conclusao) {
-                <small
-                  >Concluída em
-                  {{ etapa.acompanhamento?.dt_conclusao | date: 'dd/MM/yyyy' : 'UTC' }}</small
-                >
+              <strong>{{ etapa.ds_nome }}</strong
+              ><small>{{ etapa.ds_situacao }}</small>
+              @if (etapa.dt_conclusao) {
+                <small>Concluída em {{ etapa.dt_conclusao | date: 'dd/MM/yyyy' : 'UTC' }}</small>
               }
             </div>
           </div>
@@ -140,27 +136,14 @@
       </div>
     } @else {
       <div class="leadership-list">
-        @for (item of historicoLideranca; track item.seq_pessoa_lider) {
+        @if (!linhaAtual.lideranca.sem_lider) {
           <article>
             <div>
-              <strong>{{ nomeLider(item.seq_lider) }}</strong
-              ><p-tag
-                [value]="item.st_ativo ? 'Atual' : 'Encerrada'"
-                [severity]="item.st_ativo ? 'success' : 'secondary'"
-                [rounded]="true"
-              />
+              <strong>{{ linhaAtual.lideranca.ds_nome }}</strong
+              ><p-tag value="Atual" severity="success" [rounded]="true" />
             </div>
-            <small
-              >Desde {{ item.dt_inicio | date: 'dd/MM/yyyy' : 'UTC' }}
-              @if (item.dt_fim) {
-                até {{ item.dt_fim | date: 'dd/MM/yyyy' : 'UTC' }}
-              }
-            </small>
-            @if (item.ds_observacao) {
-              <p>{{ item.ds_observacao }}</p>
-            }
           </article>
-        } @empty {
+        } @else {
           <div class="empty-state compact">
             <i class="pi pi-users"></i><strong>Nenhuma liderança registrada</strong>
           </div>

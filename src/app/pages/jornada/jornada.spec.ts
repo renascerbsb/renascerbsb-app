@@ -1,191 +1,304 @@
 import { TestBed } from '@angular/core/testing';
 import { MessageService } from 'primeng/api';
-import { of } from 'rxjs';
+import { Subject, of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 
-import { DashboardService } from '../../services/dashboard.service';
 import { FilialService } from '../../services/filial.service';
-import { PessoaLiderService } from '../../services/pessoa-lider.service';
-import { PessoaTrajetoriaEtapaService } from '../../services/pessoa-trajetoria-etapa.service';
-import { PessoaTrajetoriaService } from '../../services/pessoa-trajetoria.service';
+import { JornadaPaginada, JornadaService } from '../../services/jornada.service';
 import { PessoaService } from '../../services/pessoa.service';
 import { TrajetoriaEtapaService } from '../../services/trajetoria-etapa.service';
 import { TrajetoriaService } from '../../services/trajetoria.service';
 import { SituacaoTrajetoria } from '../../shared/enums/situacao-trajetoria.enum';
+import { JornadaLinha } from './interfaces/jornada.models';
 import { Jornada } from './jornada';
 
-describe('Jornada - caracterização dos fluxos críticos', () => {
+describe('Jornada - integração agregada', () => {
   let component: Jornada;
-  let pessoaLiderService: {
+  let jornadaService: {
     listar: ReturnType<typeof vi.fn>;
-    definirEmLote: ReturnType<typeof vi.fn>;
+    obterKpis: ReturnType<typeof vi.fn>;
   };
-  let pessoaTrajetoriaService: {
+  let pessoaService: {
     listar: ReturnType<typeof vi.fn>;
-    listarHistorico: ReturnType<typeof vi.fn>;
-    registrarEvolucao: ReturnType<typeof vi.fn>;
-    atualizar: ReturnType<typeof vi.fn>;
+    formatarTelefone: ReturnType<typeof vi.fn>;
   };
-  let pessoaTrajetoriaEtapaService: {
-    listar: ReturnType<typeof vi.fn>;
-    atualizar: ReturnType<typeof vi.fn>;
-  };
-  let messageService: { add: ReturnType<typeof vi.fn> };
+  let trajetoriaEtapaService: { buscarPorId: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
-    pessoaLiderService = {
-      listar: vi.fn(() => of([])),
-      definirEmLote: vi.fn(() => of({ seq_lider: 20, quantidade: 1, liderancas: [] })),
-    };
-    pessoaTrajetoriaService = {
-      listar: vi.fn(() => of([])),
-      listarHistorico: vi.fn(() => of([])),
-      registrarEvolucao: vi.fn(() =>
-        of({ pessoa_trajetoria: {}, etapa_atual: {}, proxima_etapa: null }),
+    jornadaService = {
+      listar: vi.fn(() => of(respostaPaginada([criarLinha()]))),
+      obterKpis: vi.fn(() =>
+        of({
+          periodo_dias: 30,
+          novos_visitantes: 1,
+          sem_lider: 2,
+          em_acompanhamento: 3,
+          jornadas_concluidas: 4,
+          pendencias_vencidas: 5,
+        }),
       ),
-      atualizar: vi.fn(() => of({})),
     };
-    pessoaTrajetoriaEtapaService = {
+    pessoaService = {
       listar: vi.fn(() => of([])),
-      atualizar: vi.fn(() => of({})),
+      formatarTelefone: vi.fn((telefone) => telefone ?? ''),
     };
-    messageService = { add: vi.fn() };
+    trajetoriaEtapaService = {
+      buscarPorId: vi.fn(() => of(criarConfiguracaoEtapa())),
+    };
 
     await TestBed.configureTestingModule({
       imports: [Jornada],
       providers: [
-        { provide: DashboardService, useValue: { obterIndicadoresJornada: vi.fn(() => of(null)) } },
+        { provide: JornadaService, useValue: jornadaService },
         { provide: FilialService, useValue: { listar: vi.fn(() => of([])) } },
-        {
-          provide: PessoaService,
-          useValue: { listar: vi.fn(() => of([])), formatarTelefone: vi.fn() },
-        },
-        { provide: PessoaLiderService, useValue: pessoaLiderService },
-        { provide: PessoaTrajetoriaService, useValue: pessoaTrajetoriaService },
-        { provide: PessoaTrajetoriaEtapaService, useValue: pessoaTrajetoriaEtapaService },
+        { provide: PessoaService, useValue: pessoaService },
         { provide: TrajetoriaService, useValue: { listar: vi.fn(() => of([])) } },
-        { provide: TrajetoriaEtapaService, useValue: { listar: vi.fn(() => of([])) } },
-        { provide: MessageService, useValue: messageService },
+        { provide: TrajetoriaEtapaService, useValue: trajetoriaEtapaService },
+        { provide: MessageService, useValue: { add: vi.fn() } },
       ],
     })
       .overrideComponent(Jornada, { set: { template: '' } })
       .compileComponents();
 
     component = TestBed.createComponent(Jornada).componentInstance;
+    component.ngOnInit();
   });
 
-  it('abre e fecha a modal de líder com as pessoas selecionadas', () => {
+  it('converte o índice zero do PrimeNG para a página iniciada em um da API', () => {
+    component.aoCarregarTabela({ first: 20, rows: 10, sortField: 'pessoa', sortOrder: 1 });
+
+    expect(jornadaService.listar).toHaveBeenLastCalledWith({
+      page: 3,
+      pageSize: 10,
+      sort: 'pessoa',
+      order: 'asc',
+    });
+    expect(component.totalRegistros).toBe(1);
+  });
+
+  it('reinicia a primeira página e envia apenas ordenações autorizadas', () => {
+    component.consulta = { page: 4, pageSize: 10, sort: 'pessoa', order: 'asc' };
+
+    component.aoCarregarTabela({ first: 30, rows: 10, sortField: 'lider', sortOrder: -1 });
+
+    expect(component.primeiroRegistro).toBe(0);
+    expect(jornadaService.listar).toHaveBeenLastCalledWith({
+      page: 1,
+      pageSize: 10,
+      sort: 'lider',
+      order: 'desc',
+    });
+  });
+
+  it('envia pesquisa e filtros ao backend sem filtrar novamente os itens recebidos', () => {
+    component.filtro = {
+      busca: ' Ana ',
+      seqFilial: 2,
+      seqTrajetoria: 4,
+      nuSituacao: SituacaoTrajetoria.EM_ANDAMENTO,
+      lideranca: 'sem',
+    };
+
+    component.pesquisar();
+
+    expect(jornadaService.listar).toHaveBeenLastCalledWith({
+      page: 1,
+      pageSize: 10,
+      pesquisa: 'Ana',
+      seqFilial: 2,
+      seqTrajetoria: 4,
+      nuSituacao: SituacaoTrajetoria.EM_ANDAMENTO,
+      semLider: true,
+      sort: 'pessoa',
+      order: 'asc',
+    });
+    expect(jornadaService.obterKpis).toHaveBeenLastCalledWith(2);
+    expect(component.linhas).toHaveLength(1);
+  });
+
+  it('representa resposta vazia e erro de listagem', () => {
+    jornadaService.listar.mockReturnValueOnce(of(respostaPaginada([])));
+    component.carregarDados();
+    expect(component.linhas).toEqual([]);
+    expect(component.totalRegistros).toBe(0);
+
+    jornadaService.listar.mockReturnValueOnce(throwError(() => new Error('falha')));
+    component.carregarDados();
+    expect(component.erroCarregamento).toContain('Não foi possível');
+    expect(component.carregando).toBe(false);
+  });
+
+  it('mantém o loading enquanto a requisição atual está pendente', () => {
+    const resposta$ = new Subject<JornadaPaginada>();
+    jornadaService.listar.mockReturnValueOnce(resposta$.asObservable());
+
+    component.carregarDados();
+    expect(component.carregando).toBe(true);
+
+    resposta$.next(respostaPaginada([]));
+    resposta$.complete();
+    expect(component.carregando).toBe(false);
+  });
+
+  it('cancela a consulta anterior quando uma nova consulta é disparada', () => {
+    const antiga$ = new Subject<JornadaPaginada>();
+    const recente$ = new Subject<JornadaPaginada>();
+    jornadaService.listar
+      .mockReturnValueOnce(antiga$.asObservable())
+      .mockReturnValueOnce(recente$.asObservable());
+
+    component.carregarDados();
+    component.carregarDados();
+    antiga$.next(respostaPaginada([criarLinha('Antiga')]));
+    recente$.next(respostaPaginada([criarLinha('Recente')]));
+
+    expect(component.linhas[0].pessoa.ds_nome).toBe('Recente');
+  });
+
+  it('usa diretamente próxima ação, etapa atual e indicadores de progresso do backend', () => {
     const linha = criarLinha();
-    component.selecionadas = [linha];
+    linha.progresso.etapas[0].st_vencida = true;
 
-    component.abrirModalLider();
+    expect(component.textoProximaAcao(linha)).toBe('Primeiro contato');
+    expect(component.etapaParaEvolucao(linha)).toBe(linha.etapa_atual);
+    expect(component.classeEtapa(linha.progresso.etapas[0])).toBe('overdue');
 
-    expect(component.modalLiderVisivel).toBe(true);
-    expect(component.pessoasSelecionadas.map((pessoa) => pessoa.seq_pessoa)).toEqual([10]);
-
-    component.modalLiderVisivel = false;
-    expect(component.modalLiderVisivel).toBe(false);
+    linha.etapa_atual = null;
+    linha.proxima_acao = null;
+    expect(component.etapaParaEvolucao(linha)).toBeNull();
+    expect(component.textoProximaAcao(linha)).toBe('Sem etapa pendente');
   });
 
-  it('fecha a modal, limpa a seleção e recarrega após o filho definir o líder', () => {
-    const linha = criarLinha();
-    component.selecionadas = [linha];
-    component.modalLiderVisivel = true;
-    const recarregar = vi.spyOn(component, 'carregarDados').mockImplementation(() => undefined);
+  it('respeita os estados encerrados devolvidos pela API', () => {
+    const concluida = criarLinha('Aldo', SituacaoTrajetoria.CONCLUIDA);
+    const cancelada = criarLinha('Aldo', SituacaoTrajetoria.CANCELADA);
 
-    component.aoDefinirLiderSalvo();
-
-    expect(component.modalLiderVisivel).toBe(false);
-    expect(component.selecionadas).toEqual([]);
-    expect(recarregar).toHaveBeenCalledOnce();
+    expect(component.textoProximaAcao(concluida)).toBe('Jornada concluída');
+    expect(component.textoProximaAcao(cancelada)).toBe('Jornada cancelada');
   });
 
-  it('abre e fecha a modal de evolução com a linha e a etapa atuais', () => {
-    const linha = criarLinha();
-
-    component.abrirModalEvolucao(linha);
-
-    expect(component.modalEvolucaoVisivel).toBe(true);
-    expect(component.linhaEvolucao).toBe(linha);
-    expect(component.etapaEvolucao).toBe(linha.etapas[0]);
-
-    component.modalEvolucaoVisivel = false;
-    expect(component.modalEvolucaoVisivel).toBe(false);
-  });
-
-  it('fecha a modal e recarrega a Jornada após o filho registrar a evolução', () => {
-    component.modalEvolucaoVisivel = true;
-    const recarregar = vi.spyOn(component, 'carregarDados').mockImplementation(() => undefined);
+  it('recarrega a página atual e os KPIs após evolução e definição de líder', () => {
+    jornadaService.listar.mockClear();
+    jornadaService.obterKpis.mockClear();
 
     component.aoRegistrarEvolucaoSalva();
+    component.aoDefinirLiderSalvo();
 
+    expect(jornadaService.listar).toHaveBeenCalledTimes(2);
+    expect(jornadaService.obterKpis).toHaveBeenCalledTimes(2);
     expect(component.modalEvolucaoVisivel).toBe(false);
-    expect(recarregar).toHaveBeenCalledOnce();
+    expect(component.modalLiderVisivel).toBe(false);
   });
 
-  it('abre e fecha o drawer com o registro selecionado', () => {
+  it('não carrega pessoas ou etapas completas no fluxo normal e consulta a configuração só ao evoluir', () => {
+    component.aoCarregarTabela({ first: 0, rows: 10, sortField: 'pessoa', sortOrder: 1 });
+    expect(pessoaService.listar).not.toHaveBeenCalled();
+    expect(trajetoriaEtapaService.buscarPorId).not.toHaveBeenCalled();
+
     const linha = criarLinha();
+    component.abrirModalEvolucao(linha);
 
+    expect(trajetoriaEtapaService.buscarPorId).toHaveBeenCalledWith(60);
+    expect(component.modalEvolucaoVisivel).toBe(true);
+  });
+
+  it('abre o drawer apenas com a linha agregada', () => {
+    const linha = criarLinha();
     component.abrirDetalhes(linha);
-
-    expect(component.drawerVisivel).toBe(true);
     expect(component.linhaDetalhada).toBe(linha);
-
-    component.drawerVisivel = false;
-    expect(component.drawerVisivel).toBe(false);
+    expect(component.drawerVisivel).toBe(true);
+    expect(pessoaService.listar).not.toHaveBeenCalled();
   });
 });
 
-function criarLinha(): any {
+function respostaPaginada(items: JornadaLinha[]): JornadaPaginada {
   return {
-    pessoaTrajetoria: {
-      seq_pessoa_trajetoria: 30,
-      seq_pessoa: 10,
-      seq_trajetoria: 40,
-      nu_situacao: SituacaoTrajetoria.NAO_INICIADA,
-      dt_inicio: '2026-07-20',
-      dt_conclusao: null,
-      ds_observacao: null,
-    },
+    items,
+    page: 1,
+    page_size: 10,
+    total_items: items.length,
+    total_pages: items.length ? 1 : 0,
+  };
+}
+
+function criarLinha(
+  nome = 'Aldo',
+  situacao: SituacaoTrajetoria = SituacaoTrajetoria.EM_ANDAMENTO,
+): JornadaLinha {
+  const concluida = situacao === SituacaoTrajetoria.CONCLUIDA;
+  const cancelada = situacao === SituacaoTrajetoria.CANCELADA;
+  const etapa = {
+    seq_pessoa_trajetoria_etapa: 50,
+    seq_trajetoria_etapa: 60,
+    seq_etapa_trajetoria: 1,
+    ds_nome: 'Primeiro contato',
+    nr_ordem: 1,
+    nu_situacao: SituacaoTrajetoria.EM_ANDAMENTO,
+    ds_situacao: 'EM_ANDAMENTO',
+    dt_inicio: '2026-07-20',
+    dt_conclusao: null,
+    ds_observacao: 'Observação atual',
+    ds_motivo_pulo: null,
+    nr_prazo_dias: 3,
+    st_ativo_configuracao: true,
+    st_atual: true,
+    st_concluida: false,
+    st_futura: false,
+    st_pulada: false,
+    st_cancelada: false,
+    st_vencida: false,
+  };
+  return {
     pessoa: {
       seq_pessoa: 10,
-      ds_nome: 'Aldo',
+      ds_nome: nome,
+      nr_telefone: '61999999999',
       st_ativo: true,
-      dh_inclusao: '2026-07-20T10:00:00',
-      seq_filial: 1,
-      lider: null,
+      filial: { seq_filial: 1, ds_nome: 'Sede' },
     },
-    trajetoria: {
+    jornada: {
+      seq_pessoa_trajetoria: 30,
       seq_trajetoria: 40,
       ds_nome: 'Integração',
-      nr_versao: 1,
-      st_ativo: true,
+      nu_situacao: situacao,
+      ds_situacao: String(situacao),
+      dt_inicio: '2026-07-20',
+      dt_conclusao: concluida || cancelada ? '2026-07-25' : null,
+      ds_observacao: null,
+      st_pausada: false,
+      st_cancelada: cancelada,
+      st_concluida: concluida,
     },
-    filial: null,
-    etapas: [
-      {
-        modelo: {
-          seq_trajetoria_etapa: 60,
-          seq_trajetoria: 40,
-          seq_etapa_trajetoria: 1,
-          ds_nome: 'Primeiro contato',
-          nr_ordem: 1,
-          st_obrigatoria: true,
-          st_permite_pular: true,
-          st_exige_observacao: false,
-          st_ativo: true,
-        },
-        acompanhamento: {
-          seq_pessoa_trajetoria_etapa: 50,
-          seq_pessoa_trajetoria: 30,
-          seq_trajetoria_etapa: 60,
-          nu_situacao: SituacaoTrajetoria.NAO_INICIADA,
-          dt_inicio: null,
-          dt_conclusao: null,
-          ds_observacao: 'Observação atual',
-          ds_motivo_pulo: null,
-        },
-      },
-    ],
+    lideranca: { seq_lider: null, ds_nome: null, sem_lider: true },
+    etapa_atual: concluida || cancelada ? null : etapa,
+    proxima_acao: concluida || cancelada ? null : etapa,
+    progresso: {
+      total_etapas: 1,
+      etapas_concluidas: 0,
+      etapas_puladas: 0,
+      etapas_canceladas: 0,
+      percentual: 0,
+      etapas: [etapa],
+    },
+    dh_ultima_evolucao: null,
+  };
+}
+
+function criarConfiguracaoEtapa() {
+  return {
+    seq_trajetoria_etapa: 60,
+    seq_trajetoria: 40,
+    seq_etapa_trajetoria: 1,
+    ds_nome: 'Primeiro contato',
+    nr_ordem: 1,
+    nr_prazo_dias: 3,
+    st_obrigatoria: true,
+    st_permite_pular: true,
+    st_exige_observacao: false,
+    st_ativo: true,
+    seq_usuario_inclusao: 1,
+    seq_usuario_alteracao: null,
+    dh_inclusao: '2026-07-20T10:00:00',
+    dh_alteracao: null,
   };
 }
