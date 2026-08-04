@@ -5,14 +5,33 @@
       <p class="page-subtitle">{{ subtituloPagina }}</p>
     </div>
 
-    <p-button label="Voltar" icon="pi pi-arrow-left" severity="secondary" [outlined]="true" routerLink="/pessoas" />
+    <p-button
+      label="Voltar"
+      icon="pi pi-arrow-left"
+      severity="secondary"
+      [outlined]="true"
+      routerLink="/pessoas"
+    />
   </header>
 
   <p-card>
+    @if (somenteLeituraPorPermissao) {
+      <p-message severity="info" text="Você possui permissão apenas para visualizar esta filial." />
+    } @else if (!modoEdicao && !modoDetalhe && semFiliaisEditaveis) {
+      <p-message severity="warn" text="Você não possui filiais disponíveis para edição." />
+    }
+    @if (erroCarregamento) {
+      <p-message severity="error" [text]="erroCarregamento" />
+    }
     <form [formGroup]="form" (ngSubmit)="salvar()" class="form-grid">
       <div class="field col-span-6">
         <label for="ds_nome">Nome</label>
-        <input id="ds_nome" pInputText [invalid]="campoInvalido('ds_nome')" formControlName="ds_nome" />
+        <input
+          id="ds_nome"
+          pInputText
+          [invalid]="campoInvalido('ds_nome')"
+          formControlName="ds_nome"
+        />
 
         @if (campoInvalido('ds_nome')) {
           <p-message severity="error" size="small" variant="simple" text="Nome e obrigatorio." />
@@ -21,7 +40,13 @@
 
       <div class="field col-span-3">
         <label for="nr_telefone">Telefone</label>
-        <input id="nr_telefone" pInputText appTelefoneMask type="tel" formControlName="nr_telefone" />
+        <input
+          id="nr_telefone"
+          pInputText
+          appTelefoneMask
+          type="tel"
+          formControlName="nr_telefone"
+        />
       </div>
 
       <div class="field col-span-3">
@@ -33,12 +58,22 @@
         <label>Genero</label>
         <div class="radio-row">
           <label>
-            <p-radiobutton name="tp_genero" value="F" formControlName="tp_genero" inputId="generoPessoaF" />
+            <p-radiobutton
+              name="tp_genero"
+              value="F"
+              formControlName="tp_genero"
+              inputId="generoPessoaF"
+            />
             <span>Feminino</span>
           </label>
 
           <label>
-            <p-radiobutton name="tp_genero" value="M" formControlName="tp_genero" inputId="generoPessoaM" />
+            <p-radiobutton
+              name="tp_genero"
+              value="M"
+              formControlName="tp_genero"
+              inputId="generoPessoaM"
+            />
             <span>Masculino</span>
           </label>
         </div>
@@ -48,7 +83,7 @@
         <label for="seq_filial">Congregação</label>
         <p-select
           inputId="seq_filial"
-          [options]="filiais"
+          [options]="filiaisFormulario"
           optionLabel="ds_nome"
           optionValue="seq_filial"
           placeholder="Selecione"
@@ -57,7 +92,12 @@
         />
 
         @if (campoInvalido('seq_filial')) {
-          <p-message severity="error" size="small" variant="simple" text="Congregação e obrigatoria." />
+          <p-message
+            severity="error"
+            size="small"
+            variant="simple"
+            text="Congregação e obrigatoria."
+          />
         }
       </div>
 
@@ -75,7 +115,12 @@
         />
 
         @if (campoInvalido('seq_cidade')) {
-          <p-message severity="error" size="small" variant="simple" text="Bairro de residência e obrigatorio." />
+          <p-message
+            severity="error"
+            size="small"
+            variant="simple"
+            text="Bairro de residência e obrigatorio."
+          />
         }
       </div>
 
@@ -129,9 +174,24 @@
       </div>
 
       <div class="actions-row col-span-12">
-        <p-button [label]="modoDetalhe ? 'Voltar' : 'Cancelar'" icon="pi pi-times" severity="secondary" [outlined]="true" routerLink="/pessoas" />
+        @if (erroSalvar) {
+          <p-message severity="error" [text]="erroSalvar" />
+        }
+        <p-button
+          [label]="modoDetalhe ? 'Voltar' : 'Cancelar'"
+          icon="pi pi-times"
+          severity="secondary"
+          [outlined]="true"
+          routerLink="/pessoas"
+        />
         @if (!modoDetalhe) {
-          <p-button type="submit" [label]="modoEdicao ? 'Atualizar' : 'Salvar'" icon="pi pi-check" />
+          <p-button
+            type="submit"
+            [label]="modoEdicao ? 'Atualizar' : 'Salvar'"
+            icon="pi pi-check"
+            [loading]="salvando"
+            [disabled]="!podeSalvar"
+          />
         }
       </div>
     </form>

@@ -24,6 +24,10 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         void router.navigate(['/login'], { queryParams: { returnUrl } });
       }
 
+      if (erro.status === 403 && !req.url.endsWith('/auth/me')) {
+        authService.atualizarUsuario().subscribe({ error: () => undefined });
+      }
+
       return throwError(() => erro);
     }),
   );

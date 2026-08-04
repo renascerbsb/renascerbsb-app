@@ -10,9 +10,10 @@ import { SelectModule } from 'primeng/select';
 import { TableLazyLoadEvent, TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
-import { Subject, catchError, forkJoin, map, of, switchMap, tap } from 'rxjs';
+import { Subject, catchError, map, of, switchMap, tap } from 'rxjs';
 
-import { Filial, FilialService } from '../../services/filial.service';
+import { AuthService } from '../../services/auth.service';
+import { FilialGestao, FilialService } from '../../services/filial.service';
 import {
   JornadaConsultaParams,
   JornadaDirecaoOrdenacao,
@@ -76,6 +77,7 @@ interface FiltrosJornada {
 })
 export class Jornada implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
+  private readonly authService = inject(AuthService);
   private readonly filialService = inject(FilialService);
   private readonly jornadaService = inject(JornadaService);
   private readonly pessoaService = inject(PessoaService);
@@ -98,7 +100,7 @@ export class Jornada implements OnInit {
   ];
 
   indicadores: JornadaKpis | null = null;
-  filiais: Filial[] = [];
+  filiais: FilialGestao[] = [];
   trajetorias: Trajetoria[] = [];
   linhas: JornadaLinha[] = [];
   selecionadas: JornadaLinha[] = [];
@@ -109,6 +111,8 @@ export class Jornada implements OnInit {
   erroKpis = '';
   totalRegistros = 0;
   primeiroRegistro = 0;
+  carregandoFiliais = false;
+  erroFiliais = '';
 
   filtro = this.criarFiltros();
   filtrosAplicados = this.criarFiltros();
@@ -131,11 +135,17 @@ export class Jornada implements OnInit {
     this.configurarConsultas();
     this.carregarFiltros();
     this.carregarKpis();
+    this.authService.atualizarUsuario().subscribe({ error: () => undefined });
   }
 
   get filiaisOpcoes(): Opcao<number>[] {
     return this.filiais
-      .filter((filial) => filial.st_ativo)
+      .filter(
+        (filial) =>
+          filial.st_ativo &&
+          filial.st_visualiza &&
+          this.authService.podeVisualizarFilial(filial.seq_filial),
+      )
       .map((filial) => ({ label: filial.ds_nome, value: filial.seq_filial }));
   }
 
@@ -157,6 +167,17 @@ export class Jornada implements OnInit {
         this.selecionadas.map((linha) => [linha.pessoa.seq_pessoa, linha.pessoa]),
       ).values(),
     ];
+  }
+
+  get podeDefinirLider(): boolean {
+    return (
+      this.selecionadas.length > 0 &&
+      this.selecionadas.every((linha) => this.podeEditarLinha(linha))
+    );
+  }
+
+  get semFiliaisVisualizaveis(): boolean {
+    return !this.carregandoFiliais && !this.erroFiliais && this.filiaisOpcoes.length === 0;
   }
 
   carregarDados(): void {
@@ -214,6 +235,14 @@ export class Jornada implements OnInit {
       });
       return;
     }
+    if (!this.selecionadas.every((linha) => this.podeEditarLinha(linha))) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Ação indisponível',
+        detail: 'Você possui permissão apenas para visualizar uma das filiais selecionadas.',
+      });
+      return;
+    }
     if (this.lideres.length) {
       this.modalLiderVisivel = true;
       return;
@@ -239,6 +268,14 @@ export class Jornada implements OnInit {
   }
 
   abrirModalEvolucao(linha: JornadaLinha): void {
+    if (!this.podeEditarLinha(linha)) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Ação indisponível',
+        detail: this.tooltipSemEdicao(),
+      });
+      return;
+    }
     const etapa = this.etapaParaEvolucao(linha);
     if (!etapa) {
       return;
@@ -274,6 +311,16 @@ export class Jornada implements OnInit {
 
   formatarTelefone(telefone: string | null): string {
     return this.pessoaService.formatarTelefone(telefone) || 'Sem telefone';
+  }
+
+  podeEditarLinha(linha: JornadaLinha | null): boolean {
+    return this.authService.podeEditarFilial(linha?.pessoa.filial?.seq_filial);
+  }
+
+  readonly linhaSelecionavel = ({ data }: { data: JornadaLinha }) => this.podeEditarLinha(data);
+
+  tooltipSemEdicao(): string {
+    return 'Você possui permissão apenas para visualizar esta filial.';
   }
 
   private configurarConsultas(): void {
@@ -331,12 +378,25 @@ export class Jornada implements OnInit {
   }
 
   private carregarFiltros(): void {
-    forkJoin({ filiais: this.filialService.listar(), trajetorias: this.trajetoriaService.listar() })
+    this.carregandoFiliais = true;
+    this.erroFiliais = '';
+    this.filialService
+      .listarGestao()
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(({ filiais, trajetorias }) => {
-        this.filiais = filiais;
-        this.trajetorias = trajetorias;
+      .subscribe({
+        next: (filiais) => {
+          this.filiais = filiais;
+          this.carregandoFiliais = false;
+        },
+        error: () => {
+          this.carregandoFiliais = false;
+          this.erroFiliais = 'Não foi possível carregar as filiais disponíveis.';
+        },
       });
+    this.trajetoriaService
+      .listar()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((trajetorias) => (this.trajetorias = trajetorias));
   }
 
   private carregarKpis(): void {

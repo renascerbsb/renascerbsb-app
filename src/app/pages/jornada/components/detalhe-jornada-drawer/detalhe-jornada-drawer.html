@@ -40,7 +40,14 @@
           <small>Situação</small><strong>{{ nomeSituacao(linhaAtual.jornada.nu_situacao) }}</strong>
         </div>
         <div>
-          <small>Líder</small><strong>{{ linhaAtual.lideranca.ds_nome || 'Sem líder' }}</strong>
+          <small>Líder</small
+          ><strong>
+            @if (linhaAtual.lideranca.st_lider_restrito) {
+              Líder não disponível para visualização
+            } @else {
+              {{ linhaAtual.lideranca.ds_nome || 'Sem líder' }}
+            }
+          </strong>
         </div>
         <div>
           <small>Próxima ação</small><strong>{{ textoProximaAcao(linhaAtual) }}</strong>
@@ -66,7 +73,8 @@
         <p-button
           [label]="jornadaEncerrada(linhaAtual) ? 'Consultar evolução' : 'Registrar evolução'"
           icon="pi pi-check"
-          [disabled]="!etapaParaEvolucao(linhaAtual)"
+          [disabled]="!podeEditar || !etapaParaEvolucao(linhaAtual)"
+          [pTooltip]="podeEditar ? '' : 'Você possui permissão apenas para visualizar esta filial.'"
           (onClick)="abrirEvolucao()"
         />
       </div>
@@ -136,7 +144,11 @@
       </div>
     } @else {
       <div class="leadership-list">
-        @if (!linhaAtual.lideranca.sem_lider) {
+        @if (linhaAtual.lideranca.st_lider_restrito) {
+          <div class="empty-state compact">
+            <i class="pi pi-lock"></i><strong>Líder não disponível para visualização</strong>
+          </div>
+        } @else if (!linhaAtual.lideranca.sem_lider) {
           <article>
             <div>
               <strong>{{ linhaAtual.lideranca.ds_nome }}</strong

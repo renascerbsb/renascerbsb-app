@@ -130,6 +130,43 @@ describe('RegistrarEvolucaoDialog', () => {
     expect(salvo).not.toHaveBeenCalled();
   });
 
+  it('não chama a API quando aberto sem permissão de edição', () => {
+    const linha = criarLinha();
+    abrirModal(linha);
+    component.podeEditar = false;
+    component.situacaoEtapaEvolucao = SituacaoTrajetoria.CONCLUIDA;
+    component.dataConclusaoEtapaEvolucao = '2026-07-24';
+
+    component.registrarEvolucao();
+
+    expect(component.modoConsultaEvolucao).toBe(true);
+    expect(pessoaTrajetoriaService.registrarEvolucao).not.toHaveBeenCalled();
+  });
+
+  it('não fecha nem expõe detalhe técnico após 403', () => {
+    pessoaTrajetoriaService.registrarEvolucao.mockReturnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 403,
+            error: { detail: 'detalhe interno' },
+          }),
+      ),
+    );
+    const linha = criarLinha();
+    const salvo = vi.fn();
+    component.salvo.subscribe(salvo);
+    abrirModal(linha);
+    component.situacaoEtapaEvolucao = SituacaoTrajetoria.CONCLUIDA;
+    component.dataConclusaoEtapaEvolucao = '2026-07-24';
+
+    component.registrarEvolucao();
+
+    expect(component.erroEvolucao).toContain('não possui permissão');
+    expect(component.erroEvolucao).not.toContain('detalhe interno');
+    expect(salvo).not.toHaveBeenCalled();
+  });
+
   function abrirModal(linha: JornadaLinha, exigeObservacao = false): void {
     component.linhaEvolucao = linha;
     component.etapaEvolucao = linha.etapa_atual;
@@ -190,7 +227,12 @@ function criarLinha(): JornadaLinha {
       st_cancelada: false,
       st_concluida: false,
     },
-    lideranca: { seq_lider: null, ds_nome: null, sem_lider: true },
+    lideranca: {
+      seq_lider: null,
+      ds_nome: null,
+      sem_lider: true,
+      st_lider_restrito: false,
+    },
     etapa_atual: etapa,
     proxima_acao: etapa,
     progresso: {

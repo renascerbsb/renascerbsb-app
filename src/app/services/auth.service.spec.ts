@@ -1,8 +1,5 @@
 import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
-import {
-  HttpTestingController,
-  provideHttpClientTesting,
-} from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 
@@ -22,6 +19,10 @@ const respostaLogin: LoginResponse = {
     seq_usuario: 1,
     ds_usuario: 'admin',
     ds_nome: 'Administrador',
+    filiais_gestao: [
+      { seq_filial: 1, st_visualiza: true, st_edita: true },
+      { seq_filial: 2, st_visualiza: true, st_edita: false },
+    ],
   },
 };
 
@@ -48,9 +49,7 @@ describe('AuthService', () => {
 
     const request = httpTesting.expectOne('http://127.0.0.1:8000/auth/login');
     expect(request.request.method).toBe('POST');
-    expect(request.request.headers.get('Content-Type')).toBe(
-      'application/x-www-form-urlencoded',
-    );
+    expect(request.request.headers.get('Content-Type')).toBe('application/x-www-form-urlencoded');
     expect(request.request.body).toBe('username=admin&password=123');
 
     request.flush(respostaLogin);
@@ -91,6 +90,25 @@ describe('AuthService', () => {
     expect(service.getToken()).toBeNull();
     expect(service.getUsuario()).toBeNull();
     expect(localStorage.getItem(EXPIRACAO_KEY)).toBeNull();
+  });
+  it('atualiza as permissões pelo auth/me e não infere acesso para usuário sem filiais', () => {
+    service.atualizarUsuario().subscribe();
+
+    const request = httpTesting.expectOne('http://127.0.0.1:8000/auth/me');
+    request.flush({ ...respostaLogin.usuario, filiais_gestao: [] });
+
+    expect(service.filiaisVisualizaveis).toEqual([]);
+    expect(service.filiaisEditaveis).toEqual([]);
+    expect(service.podeVisualizarFilial(1)).toBe(false);
+  });
+
+  it('diferencia permissão de visualização e edição', () => {
+    localStorage.setItem(USUARIO_KEY, JSON.stringify(respostaLogin.usuario));
+
+    expect(service.podeVisualizarFilial(1)).toBe(true);
+    expect(service.podeEditarFilial(1)).toBe(true);
+    expect(service.podeVisualizarFilial(2)).toBe(true);
+    expect(service.podeEditarFilial(2)).toBe(false);
   });
 });
 
@@ -137,5 +155,21 @@ describe('authInterceptor', () => {
     expect(navigateSpy).toHaveBeenCalledWith(['/login'], {
       queryParams: { returnUrl: '/' },
     });
+  });
+
+  it('recarrega auth/me após 403 sem encerrar a sessão', () => {
+    http.get('/operacao-protegida').subscribe({ error: () => undefined });
+
+    httpTesting
+      .expectOne('/operacao-protegida')
+      .flush({}, { status: 403, statusText: 'Forbidden' });
+    httpTesting.expectOne('http://127.0.0.1:8000/auth/me').flush({
+      ...respostaLogin.usuario,
+      filiais_gestao: [{ seq_filial: 2, st_visualiza: true, st_edita: false }],
+    });
+
+    expect(authService.getToken()).toBe(respostaLogin.access_token);
+    expect(authService.podeEditarFilial(1)).toBe(false);
+    expect(authService.podeVisualizarFilial(2)).toBe(true);
   });
 });

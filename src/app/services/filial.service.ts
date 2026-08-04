@@ -10,8 +10,13 @@ export interface Filial {
   st_ativo: boolean;
 }
 
+export interface FilialGestao extends Filial {
+  st_visualiza: boolean;
+  st_edita: boolean;
+}
+
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class FilialService {
   private apiUrl = `${environment.apiUrl}/filiais/`;
@@ -20,5 +25,9 @@ export class FilialService {
 
   listar(): Observable<Filial[]> {
     return this.http.get<Filial[]>(this.apiUrl);
+  }
+
+  listarGestao(): Observable<FilialGestao[]> {
+    return this.http.get<FilialGestao[]>(`${this.apiUrl}gestao`);
   }
 }

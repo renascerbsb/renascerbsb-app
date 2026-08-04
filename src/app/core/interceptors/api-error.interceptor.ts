@@ -12,17 +12,25 @@ export const apiErrorInterceptor: HttpInterceptorFn = (req, next) => {
       messageService.add({
         severity: 'error',
         summary: MensagensApp.Geral_Error_TITULO,
-        detail: obterMensagemErro(erro)
+        detail: obterMensagemErro(erro),
       });
 
       return throwError(() => erro);
-    })
+    }),
   );
 };
 
 function obterMensagemErro(erro: HttpErrorResponse): string {
   if (erro.status === 0) {
     return MensagensApp.Geral_Error_API_INDISPONIVEL;
+  }
+
+  if (erro.status === 403) {
+    return 'Você não possui permissão para realizar esta operação nesta filial.';
+  }
+
+  if (erro.status === 404) {
+    return 'Este registro não está disponível ou não pode ser localizado.';
   }
 
   if (typeof erro.error === 'string' && erro.error.trim()) {

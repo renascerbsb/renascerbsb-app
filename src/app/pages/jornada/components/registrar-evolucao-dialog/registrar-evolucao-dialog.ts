@@ -67,6 +67,7 @@ export class RegistrarEvolucaoDialog implements OnChanges {
   @Input() linhaEvolucao: JornadaLinha | null = null;
   @Input() etapaEvolucao: EtapaDaJornada | null = null;
   @Input() configuracaoEtapa: TrajetoriaEtapa | null = null;
+  @Input() podeEditar = true;
 
   @Output() fechar = new EventEmitter<void>();
   @Output() salvo = new EventEmitter<void>();
@@ -102,7 +103,7 @@ export class RegistrarEvolucaoDialog implements OnChanges {
   }
 
   get modoConsultaEvolucao(): boolean {
-    return !!this.linhaEvolucao && jornadaEncerrada(this.linhaEvolucao);
+    return !this.podeEditar || (!!this.linhaEvolucao && jornadaEncerrada(this.linhaEvolucao));
   }
 
   get jornadaFoiAlterada(): boolean {
@@ -171,7 +172,7 @@ export class RegistrarEvolucaoDialog implements OnChanges {
   registrarEvolucao(): void {
     const linha = this.linhaEvolucao;
     const etapa = this.etapaEvolucao;
-    if (!linha || !etapa || !this.configuracaoEtapa) {
+    if (!this.podeEditar || !linha || !etapa || !this.configuracaoEtapa) {
       return;
     }
     if (this.modoConsultaEvolucao || !this.validarEvolucao()) {
@@ -351,6 +352,12 @@ export class RegistrarEvolucaoDialog implements OnChanges {
   }
 
   private obterMensagemErro(erro: HttpErrorResponse): string {
+    if (erro.status === 403) {
+      return 'Você não possui permissão para realizar esta operação nesta filial.';
+    }
+    if (erro.status === 404) {
+      return 'Este registro não está disponível ou não pode ser localizado.';
+    }
     if (typeof erro.error?.detail === 'string' && erro.error.detail.trim()) {
       return erro.error.detail;
     }

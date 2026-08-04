@@ -84,243 +84,273 @@
     </article>
   </section>
 
-  <p-card styleClass="filters-card">
-    <form class="filters-grid" (ngSubmit)="pesquisar()">
-      <div class="field">
-        <label for="buscaJornada">Pesquisar pessoa</label
-        ><input
-          id="buscaJornada"
-          pInputText
-          name="buscaJornada"
-          type="search"
-          placeholder="Nome ou telefone"
-          [(ngModel)]="filtro.busca"
-        />
+  @if (semFiliaisVisualizaveis) {
+    <p-card styleClass="journey-table-card">
+      <div class="empty-state">
+        <i class="pi pi-building"></i>
+        <strong>Você não possui filiais disponíveis para visualização.</strong>
       </div>
-      <div class="field">
-        <label for="filialJornada">Filial</label
-        ><p-select
-          inputId="filialJornada"
-          name="filialJornada"
-          [options]="filiaisOpcoes"
-          optionLabel="label"
-          optionValue="value"
-          placeholder="Todas"
-          [showClear]="true"
-          [(ngModel)]="filtro.seqFilial"
-        />
-      </div>
-      <div class="field">
-        <label for="trajetoriaJornada">Jornada</label
-        ><p-select
-          inputId="trajetoriaJornada"
-          name="trajetoriaJornada"
-          [options]="trajetoriasOpcoes"
-          optionLabel="label"
-          optionValue="value"
-          placeholder="Todas"
-          [showClear]="true"
-          [(ngModel)]="filtro.seqTrajetoria"
-        />
-      </div>
-      <div class="field">
-        <label for="situacaoJornada">Situação da jornada</label
-        ><p-select
-          inputId="situacaoJornada"
-          name="situacaoJornada"
-          [options]="situacoes"
-          optionLabel="label"
-          optionValue="value"
-          [(ngModel)]="filtro.nuSituacao"
-        />
-      </div>
-      <div class="field">
-        <label for="liderancaJornada">Liderança</label
-        ><p-select
-          inputId="liderancaJornada"
-          name="liderancaJornada"
-          [options]="liderancas"
-          optionLabel="label"
-          optionValue="value"
-          [(ngModel)]="filtro.lideranca"
-        />
-      </div>
-      <div class="filter-actions">
+    </p-card>
+  } @else {
+    <p-card styleClass="filters-card">
+      <form class="filters-grid" (ngSubmit)="pesquisar()">
+        <div class="field">
+          <label for="buscaJornada">Pesquisar pessoa</label
+          ><input
+            id="buscaJornada"
+            pInputText
+            name="buscaJornada"
+            type="search"
+            placeholder="Nome ou telefone"
+            [(ngModel)]="filtro.busca"
+          />
+        </div>
+        <div class="field">
+          <label for="filialJornada">Filial</label
+          ><p-select
+            inputId="filialJornada"
+            name="filialJornada"
+            [options]="filiaisOpcoes"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Todas"
+            [showClear]="true"
+            [(ngModel)]="filtro.seqFilial"
+          />
+        </div>
+        <div class="field">
+          <label for="trajetoriaJornada">Jornada</label
+          ><p-select
+            inputId="trajetoriaJornada"
+            name="trajetoriaJornada"
+            [options]="trajetoriasOpcoes"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Todas"
+            [showClear]="true"
+            [(ngModel)]="filtro.seqTrajetoria"
+          />
+        </div>
+        <div class="field">
+          <label for="situacaoJornada">Situação da jornada</label
+          ><p-select
+            inputId="situacaoJornada"
+            name="situacaoJornada"
+            [options]="situacoes"
+            optionLabel="label"
+            optionValue="value"
+            [(ngModel)]="filtro.nuSituacao"
+          />
+        </div>
+        <div class="field">
+          <label for="liderancaJornada">Liderança</label
+          ><p-select
+            inputId="liderancaJornada"
+            name="liderancaJornada"
+            [options]="liderancas"
+            optionLabel="label"
+            optionValue="value"
+            [(ngModel)]="filtro.lideranca"
+          />
+        </div>
+        <div class="filter-actions">
+          <p-button
+            type="button"
+            icon="pi pi-filter-slash"
+            severity="secondary"
+            [outlined]="true"
+            pTooltip="Limpar filtros"
+            (onClick)="limparFiltros()"
+          /><p-button type="submit" label="Pesquisar" icon="pi pi-search" />
+        </div>
+      </form>
+    </p-card>
+
+    <p-card styleClass="journey-table-card">
+      <div class="table-toolbar">
         <p-button
-          type="button"
-          icon="pi pi-filter-slash"
+          label="Definir líder"
+          icon="pi pi-users"
           severity="secondary"
           [outlined]="true"
-          pTooltip="Limpar filtros"
-          (onClick)="limparFiltros()"
-        /><p-button type="submit" label="Pesquisar" icon="pi pi-search" />
-      </div>
-    </form>
-  </p-card>
-
-  <p-card styleClass="journey-table-card">
-    <div class="table-toolbar">
-      <p-button
-        label="Definir líder"
-        icon="pi pi-users"
-        severity="secondary"
-        [outlined]="true"
-        [disabled]="!selecionadas.length"
-        (onClick)="abrirModalLider()"
-      />
-      <span class="selection-note">
-        @if (selecionadas.length) {
-          {{ pessoasSelecionadas.length }}
-          {{ pessoasSelecionadas.length === 1 ? 'pessoa selecionada' : 'pessoas selecionadas' }}
-        } @else {
-          Selecione pessoas para definir a liderança em lote.
-        }
-      </span>
-      <span class="toolbar-spacer"></span
-      ><small>A lista inclui jornadas em andamento e concluídas.</small>
-    </div>
-    @if (erroCarregamento) {
-      <div class="load-state error-state">
-        <i class="pi pi-exclamation-circle"></i><strong>{{ erroCarregamento }}</strong
-        ><p-button
-          label="Tentar novamente"
-          icon="pi pi-refresh"
-          [text]="true"
-          (onClick)="carregarDados()"
+          [disabled]="!podeDefinirLider"
+          [pTooltip]="
+            selecionadas.length && !podeDefinirLider
+              ? 'Você possui permissão apenas para visualizar uma das filiais selecionadas.'
+              : ''
+          "
+          (onClick)="abrirModalLider()"
         />
+        <span class="selection-note">
+          @if (selecionadas.length) {
+            {{ pessoasSelecionadas.length }}
+            {{ pessoasSelecionadas.length === 1 ? 'pessoa selecionada' : 'pessoas selecionadas' }}
+          } @else {
+            Selecione pessoas para definir a liderança em lote.
+          }
+        </span>
+        <span class="toolbar-spacer"></span
+        ><small>A lista inclui jornadas em andamento e concluídas.</small>
       </div>
-    } @else {
-      <p-table
-        [value]="linhas"
-        [(selection)]="selecionadas"
-        dataKey="jornada.seq_pessoa_trajetoria"
-        [loading]="carregando"
-        [lazy]="true"
-        [paginator]="true"
-        [rows]="consulta.pageSize"
-        [first]="primeiroRegistro"
-        [totalRecords]="totalRegistros"
-        [rowsPerPageOptions]="[10, 20, 50]"
-        [showCurrentPageReport]="true"
-        currentPageReportTemplate="{first} a {last} de {totalRecords} jornadas"
-        sortMode="single"
-        [sortField]="consulta.sort"
-        [sortOrder]="consulta.order === 'desc' ? -1 : 1"
-        (onLazyLoad)="aoCarregarTabela($event)"
-        responsiveLayout="scroll"
-        styleClass="p-datatable-sm jornada-table"
-      >
-        <ng-template pTemplate="header"
-          ><tr>
-            <th class="selection-cell"><p-tableHeaderCheckbox /></th>
-            <th pSortableColumn="pessoa">Pessoa <p-sortIcon field="pessoa" /></th>
-            <th pSortableColumn="trajetoria">Jornada <p-sortIcon field="trajetoria" /></th>
-            <th>Progresso</th>
-            <th pSortableColumn="lider">Líder <p-sortIcon field="lider" /></th>
-            <th pSortableColumn="proxima_acao">Próxima ação <p-sortIcon field="proxima_acao" /></th>
-            <th class="actions-cell">Ações</th>
-          </tr></ng-template
+      @if (erroCarregamento) {
+        <div class="load-state error-state">
+          <i class="pi pi-exclamation-circle"></i><strong>{{ erroCarregamento }}</strong
+          ><p-button
+            label="Tentar novamente"
+            icon="pi pi-refresh"
+            [text]="true"
+            (onClick)="carregarDados()"
+          />
+        </div>
+      } @else {
+        <p-table
+          [value]="linhas"
+          [(selection)]="selecionadas"
+          [rowSelectable]="linhaSelecionavel"
+          dataKey="jornada.seq_pessoa_trajetoria"
+          [loading]="carregando"
+          [lazy]="true"
+          [paginator]="true"
+          [rows]="consulta.pageSize"
+          [first]="primeiroRegistro"
+          [totalRecords]="totalRegistros"
+          [rowsPerPageOptions]="[10, 20, 50]"
+          [showCurrentPageReport]="true"
+          currentPageReportTemplate="{first} a {last} de {totalRecords} jornadas"
+          sortMode="single"
+          [sortField]="consulta.sort"
+          [sortOrder]="consulta.order === 'desc' ? -1 : 1"
+          (onLazyLoad)="aoCarregarTabela($event)"
+          responsiveLayout="scroll"
+          styleClass="p-datatable-sm jornada-table"
         >
-        <ng-template pTemplate="body" let-linha>
-          <tr
-            [class.selected-row]="selecionadas.includes(linha)"
-            [class.no-leader-row]="linha.lideranca.sem_lider"
+          <ng-template pTemplate="header"
+            ><tr>
+              <th class="selection-cell"><p-tableHeaderCheckbox /></th>
+              <th pSortableColumn="pessoa">Pessoa <p-sortIcon field="pessoa" /></th>
+              <th pSortableColumn="trajetoria">Jornada <p-sortIcon field="trajetoria" /></th>
+              <th>Progresso</th>
+              <th pSortableColumn="lider">Líder <p-sortIcon field="lider" /></th>
+              <th pSortableColumn="proxima_acao">
+                Próxima ação <p-sortIcon field="proxima_acao" />
+              </th>
+              <th class="actions-cell">Ações</th>
+            </tr></ng-template
           >
-            <td class="selection-cell"><p-tableCheckbox [value]="linha" /></td>
-            <td>
-              <div class="primary-cell">
-                <strong>{{ linha.pessoa.ds_nome }}</strong
-                ><small>{{ formatarTelefone(linha.pessoa.nr_telefone) }}</small>
-                @if (linha.pessoa.filial) {
-                  <small>{{ linha.pessoa.filial.ds_nome }}</small>
+          <ng-template pTemplate="body" let-linha>
+            <tr
+              [class.selected-row]="selecionadas.includes(linha)"
+              [class.no-leader-row]="linha.lideranca.sem_lider"
+            >
+              <td class="selection-cell">
+                <span [pTooltip]="podeEditarLinha(linha) ? '' : tooltipSemEdicao()">
+                  <p-tableCheckbox [value]="linha" [disabled]="!podeEditarLinha(linha)" />
+                </span>
+              </td>
+              <td>
+                <div class="primary-cell">
+                  <strong>{{ linha.pessoa.ds_nome }}</strong
+                  ><small>{{ formatarTelefone(linha.pessoa.nr_telefone) }}</small>
+                  @if (linha.pessoa.filial) {
+                    <small>{{ linha.pessoa.filial.ds_nome }}</small>
+                  }
+                </div>
+              </td>
+              <td>
+                <div class="primary-cell">
+                  <strong>{{ linha.jornada.ds_nome }}</strong
+                  ><p-tag
+                    [value]="nomeSituacao(linha.jornada.nu_situacao)"
+                    [severity]="severidadeSituacao(linha.jornada.nu_situacao)"
+                    [rounded]="true"
+                  />
+                </div>
+              </td>
+              <td>
+                <div class="progress-dots">
+                  @for (etapa of linha.progresso.etapas; track etapa.seq_trajetoria_etapa) {
+                    <span
+                      class="progress-dot"
+                      [class]="classeEtapa(etapa)"
+                      [pTooltip]="tooltipEtapa(etapa)"
+                      [attr.aria-label]="tooltipEtapa(etapa)"
+                    ></span>
+                  } @empty {
+                    <span class="muted">Sem etapas</span>
+                  }
+                </div>
+              </td>
+              <td>
+                @if (linha.lideranca.st_lider_restrito) {
+                  <span class="muted">Líder não disponível para visualização</span>
+                } @else if (!linha.lideranca.sem_lider) {
+                  {{ linha.lideranca.ds_nome }}
+                } @else {
+                  <p-tag value="Sem líder" severity="danger" [rounded]="true" />
                 }
-              </div>
-            </td>
-            <td>
-              <div class="primary-cell">
-                <strong>{{ linha.jornada.ds_nome }}</strong
-                ><p-tag
-                  [value]="nomeSituacao(linha.jornada.nu_situacao)"
-                  [severity]="severidadeSituacao(linha.jornada.nu_situacao)"
-                  [rounded]="true"
-                />
-              </div>
-            </td>
-            <td>
-              <div class="progress-dots">
-                @for (etapa of linha.progresso.etapas; track etapa.seq_trajetoria_etapa) {
-                  <span
-                    class="progress-dot"
-                    [class]="classeEtapa(etapa)"
-                    [pTooltip]="tooltipEtapa(etapa)"
-                    [attr.aria-label]="tooltipEtapa(etapa)"
-                  ></span>
-                } @empty {
-                  <span class="muted">Sem etapas</span>
+              </td>
+              <td>
+                @if (jornadaEncerrada(linha)) {
+                  <p-tag
+                    [value]="textoProximaAcao(linha)"
+                    [severity]="linha.jornada.nu_situacao === 4 ? 'success' : 'danger'"
+                    [rounded]="true"
+                  />
+                } @else {
+                  {{ textoProximaAcao(linha) }}
                 }
-              </div>
-            </td>
-            <td>
-              @if (!linha.lideranca.sem_lider) {
-                {{ linha.lideranca.ds_nome }}
-              } @else {
-                <p-tag value="Sem líder" severity="danger" [rounded]="true" />
-              }
-            </td>
-            <td>
-              @if (jornadaEncerrada(linha)) {
-                <p-tag
-                  [value]="textoProximaAcao(linha)"
-                  [severity]="linha.jornada.nu_situacao === 4 ? 'success' : 'danger'"
-                  [rounded]="true"
-                />
-              } @else {
-                {{ textoProximaAcao(linha) }}
-              }
-            </td>
-            <td>
-              <div class="row-actions">
-                <p-button
-                  icon="pi pi-search"
-                  [rounded]="true"
-                  [outlined]="true"
-                  severity="secondary"
-                  ariaLabel="Detalhar"
-                  pTooltip="Detalhar"
-                  (onClick)="abrirDetalhes(linha)"
-                /><p-button
-                  icon="pi pi-check"
-                  [rounded]="true"
-                  [outlined]="true"
-                  [ariaLabel]="
-                    jornadaEncerrada(linha) ? 'Consultar evolução' : 'Registrar evolução'
-                  "
-                  [pTooltip]="jornadaEncerrada(linha) ? 'Consultar evolução' : 'Registrar evolução'"
-                  [disabled]="!etapaParaEvolucao(linha)"
-                  (onClick)="abrirModalEvolucao(linha)"
-                />
-              </div>
-            </td>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="emptymessage"
-          ><tr>
-            <td colspan="7">
-              <div class="empty-state">
-                <i class="pi pi-map"></i><strong>Nenhuma jornada encontrada</strong
-                ><span>Ajuste os filtros para consultar outros acompanhamentos.</span>
-              </div>
-            </td>
-          </tr></ng-template
-        >
-      </p-table>
-    }
-  </p-card>
+              </td>
+              <td>
+                <div class="row-actions">
+                  <p-button
+                    icon="pi pi-search"
+                    [rounded]="true"
+                    [outlined]="true"
+                    severity="secondary"
+                    ariaLabel="Detalhar"
+                    pTooltip="Detalhar"
+                    (onClick)="abrirDetalhes(linha)"
+                  /><p-button
+                    icon="pi pi-check"
+                    [rounded]="true"
+                    [outlined]="true"
+                    [ariaLabel]="
+                      jornadaEncerrada(linha) ? 'Consultar evolução' : 'Registrar evolução'
+                    "
+                    [pTooltip]="
+                      !podeEditarLinha(linha)
+                        ? tooltipSemEdicao()
+                        : jornadaEncerrada(linha)
+                          ? 'Consultar evolução'
+                          : 'Registrar evolução'
+                    "
+                    [disabled]="!podeEditarLinha(linha) || !etapaParaEvolucao(linha)"
+                    (onClick)="abrirModalEvolucao(linha)"
+                  />
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage"
+            ><tr>
+              <td colspan="7">
+                <div class="empty-state">
+                  <i class="pi pi-map"></i><strong>Nenhuma jornada encontrada</strong
+                  ><span>Ajuste os filtros para consultar outros acompanhamentos.</span>
+                </div>
+              </td>
+            </tr></ng-template
+          >
+        </p-table>
+      }
+    </p-card>
+  }
 </section>
 
 <app-detalhe-jornada-drawer
   [visivel]="drawerVisivel"
   [linha]="linhaDetalhada"
+  [podeEditar]="podeEditarLinha(linhaDetalhada)"
   (fechar)="drawerVisivel = false"
   (solicitarEvolucao)="abrirModalEvolucao($event)"
 />
@@ -338,6 +368,7 @@
   [linhaEvolucao]="linhaEvolucao"
   [etapaEvolucao]="etapaEvolucao"
   [configuracaoEtapa]="configuracaoEtapaEvolucao"
+  [podeEditar]="podeEditarLinha(linhaEvolucao)"
   (fechar)="modalEvolucaoVisivel = false"
   (salvo)="aoRegistrarEvolucaoSalva()"
 />

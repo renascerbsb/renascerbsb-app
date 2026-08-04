@@ -7,6 +7,7 @@ import {
   SimpleChanges,
   inject,
 } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
@@ -14,7 +15,7 @@ import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { TextareaModule } from 'primeng/textarea';
-import { finalize } from 'rxjs';
+import { EMPTY, catchError, finalize } from 'rxjs';
 
 import {
   PessoaLiderLoteResponse,
@@ -48,6 +49,7 @@ export class DefinirLiderDialog implements OnChanges {
   dataLideranca = this.hoje();
   observacaoLideranca = '';
   salvando = false;
+  erroDefinicao = '';
 
   get lideresOpcoes(): Pessoa[] {
     return [...this.lideres];
@@ -60,6 +62,7 @@ export class DefinirLiderDialog implements OnChanges {
   }
 
   definirLider(): void {
+    this.erroDefinicao = '';
     if (!this.seqNovoLider) {
       this.messageService.add({
         severity: 'warn',
@@ -85,7 +88,21 @@ export class DefinirLiderDialog implements OnChanges {
         dt_inicio: this.dataLideranca,
         ds_observacao: this.observacaoLideranca.trim() || null,
       })
-      .pipe(finalize(() => (this.salvando = false)))
+      .pipe(
+        finalize(() => (this.salvando = false)),
+        catchError((erro: HttpErrorResponse) => {
+          this.erroDefinicao =
+            erro.status === 403
+              ? 'Você não possui permissão para realizar esta operação nesta filial.'
+              : 'Não foi possível definir a liderança. Tente novamente.';
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Não foi possível definir a liderança',
+            detail: this.erroDefinicao,
+          });
+          return EMPTY;
+        }),
+      )
       .subscribe((resultado) => {
         this.messageService.add({
           severity: 'success',
@@ -106,6 +123,7 @@ export class DefinirLiderDialog implements OnChanges {
     this.seqNovoLider = null;
     this.dataLideranca = this.hoje();
     this.observacaoLideranca = '';
+    this.erroDefinicao = '';
   }
 
   private hoje(): string {

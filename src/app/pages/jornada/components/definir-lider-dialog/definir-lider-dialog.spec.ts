@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpErrorResponse } from '@angular/common/http';
 import { MessageService } from 'primeng/api';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 
 import { PessoaLiderService } from '../../../../services/pessoa-lider.service';
@@ -78,6 +79,20 @@ describe('DefinirLiderDialog', () => {
       liderancas: [],
     });
   });
+  it('mantém o diálogo aberto e não emite sucesso após 403', () => {
+    pessoaLiderService.definirEmLote.mockReturnValue(
+      throwError(() => new HttpErrorResponse({ status: 403 })),
+    );
+    component.seqNovoLider = 20;
+    const salvo = vi.fn();
+    component.salvo.subscribe(salvo);
+
+    component.definirLider();
+
+    expect(component.erroDefinicao).toContain('não possui permissão');
+    expect(salvo).not.toHaveBeenCalled();
+    expect(component.salvando).toBe(false);
+  });
 });
 
 function criarPessoa(seqPessoa: number, nome: string): Pessoa {
@@ -86,5 +101,6 @@ function criarPessoa(seqPessoa: number, nome: string): Pessoa {
     ds_nome: nome,
     st_ativo: true,
     dh_inclusao: '2026-07-20T10:00:00',
+    st_lider_restrito: false,
   };
 }

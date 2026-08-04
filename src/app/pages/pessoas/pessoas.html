@@ -5,462 +5,498 @@
       <p class="page-subtitle">Consulte, filtre e mantenha os cadastros da igreja.</p>
     </div>
 
-    <p-button label="Cadastrar pessoa" icon="pi pi-plus" routerLink="/pessoas/novo" />
+    @if (!semFiliaisVisualizaveis) {
+      <span [pTooltip]="temFilialEditavel ? '' : tooltipSemEdicao()" tooltipPosition="left">
+        <p-button
+          label="Cadastrar pessoa"
+          icon="pi pi-plus"
+          routerLink="/pessoas/novo"
+          [disabled]="!temFilialEditavel"
+        />
+      </span>
+    }
   </header>
 
-  <p-card styleClass="mb-4">
-    <form (ngSubmit)="pesquisar()" class="form-grid">
-      <div class="field col-span-4">
-        <label for="dsNome">Nome</label>
-        <input id="dsNome" pInputText type="text" name="dsNome" [(ngModel)]="filtro.dsNome" />
+  @if (semFiliaisVisualizaveis) {
+    <p-card>
+      <div class="empty-state">
+        <i class="pi pi-building"></i>
+        <strong>Você não possui filiais disponíveis para visualização.</strong>
       </div>
-
-      <div class="field col-span-2">
-        <label for="nrTelefone">Telefone</label>
-        <input
-          id="nrTelefone"
-          pInputText
-          appTelefoneMask
-          type="tel"
-          name="nrTelefone"
-          [(ngModel)]="filtro.nrTelefone"
-        />
-      </div>
-
-      <div class="field col-span-3">
-        <label for="tpGenero">Gênero</label>
-        <p-select
-          inputId="tpGenero"
-          name="tpGenero"
-          [options]="generos"
-          optionLabel="label"
-          optionValue="value"
-          [(ngModel)]="filtro.tpGenero"
-        />
-      </div>
-
-      <div class="field col-span-3">
-        <label for="dtNascimento">Nascimento</label>
-        <input
-          id="dtNascimento"
-          pInputText
-          type="date"
-          name="dtNascimento"
-          [(ngModel)]="filtro.dtNascimento"
-        />
-      </div>
-
-      <div class="field col-span-3">
-        <label for="seqFaixaEtaria">Faixa Etária</label>
-        <p-select
-          inputId="seqFaixaEtaria"
-          name="seqFaixaEtaria"
-          [options]="faixasEtarias"
-          optionLabel="ds_nome"
-          optionValue="seq_faixa_etaria"
-          placeholder="Todas as faixas"
-          [showClear]="true"
-          [(ngModel)]="filtro.seqFaixaEtaria"
-        />
-      </div>
-
-      <div class="field col-span-3">
-        <label for="seqVinculo">Vínculo</label>
-        <p-select
-          inputId="seqVinculo"
-          name="seqVinculo"
-          [options]="vinculos"
-          optionLabel="ds_nome"
-          optionValue="seq_vinculo"
-          placeholder="Todos os vinculos"
-          [showClear]="true"
-          [(ngModel)]="filtro.seqVinculo"
-        />
-      </div>
-
-      <div class="field col-span-3">
-        <label for="seqFilial">Congregação</label>
-        <p-select
-          inputId="seqFilial"
-          name="seqFilial"
-          [options]="filiais"
-          optionLabel="ds_nome"
-          optionValue="seq_filial"
-          placeholder="Todas as congregações"
-          [showClear]="true"
-          [(ngModel)]="filtro.seqFilial"
-        />
-      </div>
-
-      <div class="field col-span-3">
-        <label for="seqCidade">Bairro de Residência</label>
-        <p-select
-          inputId="seqCidade"
-          name="seqCidade"
-          [options]="cidades"
-          optionLabel="ds_nome"
-          optionValue="seq_cidade"
-          placeholder="Todas as cidades"
-          [filter]="true"
-          [showClear]="true"
-          [(ngModel)]="filtro.seqCidade"
-        />
-      </div>
-
-      <div class="field col-span-4">
-        <label for="seqLideres">Líder(es)</label>
-        <p-multiselect
-          inputId="seqLideres"
-          name="seqLideres"
-          [options]="lideres"
-          optionLabel="ds_nome"
-          optionValue="seq_pessoa"
-          placeholder="Selecione os lideres"
-          [filter]="true"
-          display="chip"
-          [(ngModel)]="filtro.seqLideres"
-        />
-      </div>
-
-      <div class="field col-span-6">
-        <label for="seqMinisterios">Ministérios/serviços</label>
-        <p-multiselect
-          inputId="seqMinisterios"
-          name="seqMinisterios"
-          [options]="ministerios"
-          optionLabel="ds_nome"
-          optionValue="seq_ministerio"
-          placeholder="Selecione os ministerios"
-          display="chip"
-          [(ngModel)]="filtro.seqMinisterios"
-        />
-      </div>
-
-      <div class="field col-span-2">
-        <label for="stAtivo">Status</label>
-        <p-select
-          inputId="stAtivo"
-          name="stAtivo"
-          [options]="situacoes"
-          optionLabel="label"
-          optionValue="value"
-          [(ngModel)]="filtro.stAtivo"
-        />
-      </div>
-
-      <div class="actions-row col-span-12">
-        <p-button
-          type="button"
-          label="Limpar"
-          icon="pi pi-filter-slash"
-          severity="secondary"
-          [outlined]="true"
-          (onClick)="limparFiltros()"
-        />
-        <p-button type="submit" label="Pesquisar" icon="pi pi-search" />
-        <p-button
-          type="button"
-          label="Iniciar jornada"
-          icon="pi pi-play"
-          (onClick)="abrirModalJornada()"
-        />
-      </div>
-    </form>
-  </p-card>
-
-  <p-card>
-    <p-table
-      [value]="pessoas"
-      [paginator]="true"
-      [rows]="10"
-      [rowsPerPageOptions]="[10, 20, 50]"
-      responsiveLayout="scroll"
-      styleClass="p-datatable-sm"
-    >
-      <ng-template pTemplate="header">
-        <tr>
-          <th>Nome</th>
-          <th>Vínculo</th>
-          <th>Ministérios/Serviços</th>
-          <th>Bairro</th>
-          <th>Congregação</th>
-          <th>Lider</th>
-          <th class="actions-cell">Acoes</th>
-        </tr>
-      </ng-template>
-
-      <ng-template pTemplate="body" let-pessoa>
-        <tr>
-          <td>{{ pessoa.ds_nome }}</td>
-          <td>{{ pessoa.vinculo?.ds_nome || '-' }}</td>
-          <td>
-            @if (pessoa.ministerios?.length) {
-              <div class="tag-list">
-                @for (ministerio of pessoa.ministerios; track ministerio.seq_ministerio) {
-                  <p-tag [value]="ministerio.ds_nome" severity="info" />
-                }
-              </div>
-            } @else {
-              <span>-</span>
-            }
-          </td>
-          <td>
-            {{ pessoa.cidade?.ds_nome || '-' }}
-            {{ pessoa.cidade?.uf ? ' - ' + pessoa.cidade?.uf : '' }}
-          </td>
-          <td>{{ pessoa.filial?.ds_nome || '-' }}</td>
-          <td>
-            @if (pessoa.lider) {
-              <p-chip [label]="formatarNomeLider(pessoa)" />
-            } @else {
-              <span>-</span>
-            }
-          </td>
-          <td>
-            <div class="table-actions">
-              <p-button
-                icon="pi pi-pencil"
-                label="Alterar"
-                size="small"
-                [outlined]="true"
-                [routerLink]="['/pessoas', pessoa.seq_pessoa, 'editar']"
-              />
-              <p-button
-                icon="pi pi-search"
-                label="Detalhar"
-                size="small"
-                severity="secondary"
-                [outlined]="true"
-                [routerLink]="['/pessoas', pessoa.seq_pessoa, 'detalhar']"
-              />
-            </div>
-          </td>
-        </tr>
-      </ng-template>
-
-      <ng-template pTemplate="emptymessage">
-        <tr>
-          <td colspan="7" class="empty-state">Nenhuma pessoa encontrada.</td>
-        </tr>
-      </ng-template>
-    </p-table>
-  </p-card>
-
-  <p-dialog
-    header="Iniciar jornada em lote"
-    [(visible)]="modalJornadaVisivel"
-    [modal]="true"
-    [closable]="!processandoJornada"
-    [closeOnEscape]="!processandoJornada"
-    [dismissableMask]="!processandoJornada"
-    [draggable]="false"
-    [resizable]="false"
-    [style]="{ width: 'min(1100px, 96vw)' }"
-    styleClass="jornada-dialog"
-    (onHide)="aoFecharModalJornada()"
-  >
-    <div class="jornada-modal-content">
-      <p class="modal-support-text">
-        Selecione a filial, a jornada e as pessoas que serão incluídas.
-      </p>
-
-      <div class="form-grid jornada-main-fields">
-        <div class="field col-span-6">
-          <label for="jornadaSeqFilial">Filial <span class="required-marker">*</span></label>
-          <p-select
-            inputId="jornadaSeqFilial"
-            name="jornadaSeqFilial"
-            [options]="filiaisAtivas"
-            optionLabel="ds_nome"
-            optionValue="seq_filial"
-            placeholder="Selecione a filial"
-            [filter]="true"
-            [loading]="carregandoFiliais"
-            [disabled]="processandoJornada"
-            [(ngModel)]="jornadaEmLote.seqFilial"
-            (onChange)="aoAlterarFilial($event.value)"
-          />
-        </div>
-
-        <div class="field col-span-6">
-          <label for="jornadaSeqTrajetoria">Jornada <span class="required-marker">*</span></label>
-          <p-select
-            inputId="jornadaSeqTrajetoria"
-            name="jornadaSeqTrajetoria"
-            [options]="jornadasDisponiveis"
-            optionLabel="ds_nome"
-            optionValue="seq_trajetoria"
-            placeholder="Selecione a jornada"
-            [filter]="true"
-            [loading]="carregandoJornadas"
-            [disabled]="!jornadaEmLote.seqFilial || carregandoJornadas || processandoJornada"
-            [(ngModel)]="jornadaEmLote.seqTrajetoria"
-            (onChange)="aoAlterarJornada($event.value)"
-          />
-        </div>
-      </div>
-
-      @if (erroFiliais) {
-        <p-message severity="error" [text]="erroFiliais" />
-      }
-
-      @if (erroJornadas) {
-        <p-message severity="error" [text]="erroJornadas" />
-      } @else if (
-        jornadaEmLote.seqFilial && !carregandoJornadas && jornadasDisponiveis.length === 0
-      ) {
-        <p-message severity="info" text="Não há jornadas disponíveis para esta filial." />
-      }
-
-      @if (jornadaEmLote.seqFilial && jornadaEmLote.seqTrajetoria) {
-        <div class="modal-section">
-          <div class="form-grid">
-            <div class="field col-span-6">
-              <label for="pesquisaNomeJornada">Nome</label>
-              <input
-                id="pesquisaNomeJornada"
-                pInputText
-                type="search"
-                name="pesquisaNomeJornada"
-                placeholder="Pesquisar por nome"
-                [disabled]="carregandoPessoasElegiveis || processandoJornada"
-                [(ngModel)]="pesquisaNomeJornada"
-              />
-            </div>
-
-            <div class="field col-span-6">
-              <label for="pesquisaTelefoneJornada">Telefone</label>
-              <input
-                id="pesquisaTelefoneJornada"
-                pInputText
-                appTelefoneMask
-                type="tel"
-                name="pesquisaTelefoneJornada"
-                placeholder="Pesquisar por telefone"
-                [disabled]="carregandoPessoasElegiveis || processandoJornada"
-                [(ngModel)]="pesquisaTelefoneJornada"
-              />
-            </div>
-          </div>
-
-          @if (carregandoPessoasElegiveis) {
-            <div class="modal-state">
-              <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
-              <span>Carregando pessoas disponíveis...</span>
-            </div>
-          } @else if (erroPessoasElegiveis) {
-            <p-message severity="error" [text]="erroPessoasElegiveis" />
-          } @else {
-            <p-table
-              [value]="pessoasElegiveisFiltradas"
-              [(selection)]="pessoasSelecionadas"
-              dataKey="seq_pessoa"
-              [paginator]="pessoasElegiveisFiltradas.length > 10"
-              [rows]="10"
-              [rowsPerPageOptions]="[10, 20, 50]"
-              responsiveLayout="scroll"
-              styleClass="p-datatable-sm jornada-people-table"
-            >
-              <ng-template pTemplate="header">
-                <tr>
-                  <th class="selection-cell">
-                    <p-tableHeaderCheckbox [disabled]="processandoJornada" />
-                  </th>
-                  <th>Nome</th>
-                  <th>Telefone</th>
-                  <th>Situação</th>
-                  <th>Filial atual</th>
-                  <th>Líder atual</th>
-                </tr>
-              </ng-template>
-
-              <ng-template pTemplate="body" let-pessoa>
-                <tr>
-                  <td class="selection-cell">
-                    <p-tableCheckbox [value]="pessoa" [disabled]="processandoJornada" />
-                  </td>
-                  <td>{{ pessoa.ds_nome }}</td>
-                  <td>{{ formatarTelefoneElegivel(pessoa) }}</td>
-                  <td><p-tag [value]="obterSituacaoPessoa(pessoa)" severity="secondary" /></td>
-                  <td>{{ obterNomeFilial(pessoa.seq_filial) }}</td>
-                  <td>
-                    @if (obterNomeLider(pessoa.seq_lider); as nomeLider) {
-                      {{ nomeLider }}
-                    } @else {
-                      <p-tag value="Sem líder" severity="warn" />
-                    }
-                  </td>
-                </tr>
-              </ng-template>
-
-              <ng-template pTemplate="emptymessage">
-                <tr>
-                  <td colspan="6" class="empty-state">
-                    @if (pessoasElegiveis.length) {
-                      Nenhuma pessoa encontrada para a pesquisa informada.
-                    } @else {
-                      Não há pessoas disponíveis para iniciar esta jornada na filial selecionada.
-                    }
-                  </td>
-                </tr>
-              </ng-template>
-            </p-table>
-          }
-        </div>
-      }
-
-      <div class="form-grid modal-section">
+    </p-card>
+  } @else {
+    <p-card styleClass="mb-4">
+      <form (ngSubmit)="pesquisar()" class="form-grid">
         <div class="field col-span-4">
-          <label for="jornadaDtInicio">Data de início <span class="required-marker">*</span></label>
+          <label for="dsNome">Nome</label>
+          <input id="dsNome" pInputText type="text" name="dsNome" [(ngModel)]="filtro.dsNome" />
+        </div>
+
+        <div class="field col-span-2">
+          <label for="nrTelefone">Telefone</label>
           <input
-            id="jornadaDtInicio"
+            id="nrTelefone"
+            pInputText
+            appTelefoneMask
+            type="tel"
+            name="nrTelefone"
+            [(ngModel)]="filtro.nrTelefone"
+          />
+        </div>
+
+        <div class="field col-span-3">
+          <label for="tpGenero">Gênero</label>
+          <p-select
+            inputId="tpGenero"
+            name="tpGenero"
+            [options]="generos"
+            optionLabel="label"
+            optionValue="value"
+            [(ngModel)]="filtro.tpGenero"
+          />
+        </div>
+
+        <div class="field col-span-3">
+          <label for="dtNascimento">Nascimento</label>
+          <input
+            id="dtNascimento"
             pInputText
             type="date"
-            name="jornadaDtInicio"
-            required
-            [disabled]="processandoJornada"
-            [(ngModel)]="jornadaEmLote.dtInicio"
+            name="dtNascimento"
+            [(ngModel)]="filtro.dtNascimento"
           />
         </div>
 
-        <div class="field col-span-8">
-          <label for="jornadaObservacao">Observação geral</label>
-          <textarea
-            id="jornadaObservacao"
-            pTextarea
-            name="jornadaObservacao"
-            rows="3"
-            [disabled]="processandoJornada"
-            [(ngModel)]="jornadaEmLote.dsObservacao"
-          ></textarea>
+        <div class="field col-span-3">
+          <label for="seqFaixaEtaria">Faixa Etária</label>
+          <p-select
+            inputId="seqFaixaEtaria"
+            name="seqFaixaEtaria"
+            [options]="faixasEtarias"
+            optionLabel="ds_nome"
+            optionValue="seq_faixa_etaria"
+            placeholder="Todas as faixas"
+            [showClear]="true"
+            [(ngModel)]="filtro.seqFaixaEtaria"
+          />
         </div>
-      </div>
 
-      @if (erroSalvarJornada) {
-        <p-message severity="error" [text]="erroSalvarJornada" />
-      }
-    </div>
+        <div class="field col-span-3">
+          <label for="seqVinculo">Vínculo</label>
+          <p-select
+            inputId="seqVinculo"
+            name="seqVinculo"
+            [options]="vinculos"
+            optionLabel="ds_nome"
+            optionValue="seq_vinculo"
+            placeholder="Todos os vinculos"
+            [showClear]="true"
+            [(ngModel)]="filtro.seqVinculo"
+          />
+        </div>
 
-    <ng-template pTemplate="footer">
-      <div class="jornada-dialog-footer">
-        <span class="selection-summary">{{ textoQuantidadeSelecionada }}</span>
-        <div class="footer-actions">
+        <div class="field col-span-3">
+          <label for="seqFilial">Congregação</label>
+          <p-select
+            inputId="seqFilial"
+            name="seqFilial"
+            [options]="filiaisVisualizaveis"
+            optionLabel="ds_nome"
+            optionValue="seq_filial"
+            placeholder="Todas as congregações"
+            [showClear]="true"
+            [(ngModel)]="filtro.seqFilial"
+          />
+        </div>
+
+        <div class="field col-span-3">
+          <label for="seqCidade">Bairro de Residência</label>
+          <p-select
+            inputId="seqCidade"
+            name="seqCidade"
+            [options]="cidades"
+            optionLabel="ds_nome"
+            optionValue="seq_cidade"
+            placeholder="Todas as cidades"
+            [filter]="true"
+            [showClear]="true"
+            [(ngModel)]="filtro.seqCidade"
+          />
+        </div>
+
+        <div class="field col-span-4">
+          <label for="seqLideres">Líder(es)</label>
+          <p-multiselect
+            inputId="seqLideres"
+            name="seqLideres"
+            [options]="lideres"
+            optionLabel="ds_nome"
+            optionValue="seq_pessoa"
+            placeholder="Selecione os lideres"
+            [filter]="true"
+            display="chip"
+            [(ngModel)]="filtro.seqLideres"
+          />
+        </div>
+
+        <div class="field col-span-6">
+          <label for="seqMinisterios">Ministérios/serviços</label>
+          <p-multiselect
+            inputId="seqMinisterios"
+            name="seqMinisterios"
+            [options]="ministerios"
+            optionLabel="ds_nome"
+            optionValue="seq_ministerio"
+            placeholder="Selecione os ministerios"
+            display="chip"
+            [(ngModel)]="filtro.seqMinisterios"
+          />
+        </div>
+
+        <div class="field col-span-2">
+          <label for="stAtivo">Status</label>
+          <p-select
+            inputId="stAtivo"
+            name="stAtivo"
+            [options]="situacoes"
+            optionLabel="label"
+            optionValue="value"
+            [(ngModel)]="filtro.stAtivo"
+          />
+        </div>
+
+        <div class="actions-row col-span-12">
           <p-button
-            label="Cancelar"
+            type="button"
+            label="Limpar"
+            icon="pi pi-filter-slash"
             severity="secondary"
             [outlined]="true"
-            [disabled]="processandoJornada"
-            (onClick)="cancelarModalJornada()"
+            (onClick)="limparFiltros()"
           />
+          <p-button type="submit" label="Pesquisar" icon="pi pi-search" />
           <p-button
-            [label]="labelConfirmarJornada"
+            type="button"
+            label="Iniciar jornada"
             icon="pi pi-play"
-            [loading]="processandoJornada"
-            [disabled]="!podeConfirmarJornada"
-            (onClick)="confirmarInicioJornada()"
+            [disabled]="!temFilialEditavel"
+            [pTooltip]="temFilialEditavel ? '' : tooltipSemEdicao()"
+            (onClick)="abrirModalJornada()"
           />
         </div>
+      </form>
+    </p-card>
+
+    <p-card>
+      @if (erroPessoas) {
+        <p-message severity="error" [text]="erroPessoas" />
+      }
+      <p-table
+        [value]="pessoas"
+        [paginator]="true"
+        [rows]="10"
+        [rowsPerPageOptions]="[10, 20, 50]"
+        responsiveLayout="scroll"
+        styleClass="p-datatable-sm"
+      >
+        <ng-template pTemplate="header">
+          <tr>
+            <th>Nome</th>
+            <th>Vínculo</th>
+            <th>Ministérios/Serviços</th>
+            <th>Bairro</th>
+            <th>Congregação</th>
+            <th>Lider</th>
+            <th class="actions-cell">Acoes</th>
+          </tr>
+        </ng-template>
+
+        <ng-template pTemplate="body" let-pessoa>
+          <tr>
+            <td>{{ pessoa.ds_nome }}</td>
+            <td>{{ pessoa.vinculo?.ds_nome || '-' }}</td>
+            <td>
+              @if (pessoa.ministerios?.length) {
+                <div class="tag-list">
+                  @for (ministerio of pessoa.ministerios; track ministerio.seq_ministerio) {
+                    <p-tag [value]="ministerio.ds_nome" severity="info" />
+                  }
+                </div>
+              } @else {
+                <span>-</span>
+              }
+            </td>
+            <td>
+              {{ pessoa.cidade?.ds_nome || '-' }}
+              {{ pessoa.cidade?.uf ? ' - ' + pessoa.cidade?.uf : '' }}
+            </td>
+            <td>{{ pessoa.filial?.ds_nome || '-' }}</td>
+            <td>
+              @if (pessoa.st_lider_restrito) {
+                <span>Líder não disponível para visualização</span>
+              } @else if (pessoa.lider) {
+                <p-chip [label]="formatarNomeLider(pessoa)" />
+              } @else {
+                <span>-</span>
+              }
+            </td>
+            <td>
+              <div class="table-actions">
+                <span [pTooltip]="podeEditarPessoa(pessoa) ? '' : tooltipSemEdicao()">
+                  <p-button
+                    icon="pi pi-pencil"
+                    label="Alterar"
+                    size="small"
+                    [outlined]="true"
+                    [disabled]="!podeEditarPessoa(pessoa)"
+                    [routerLink]="['/pessoas', pessoa.seq_pessoa, 'editar']"
+                  />
+                </span>
+                <p-button
+                  icon="pi pi-search"
+                  label="Detalhar"
+                  size="small"
+                  severity="secondary"
+                  [outlined]="true"
+                  [routerLink]="['/pessoas', pessoa.seq_pessoa, 'detalhar']"
+                />
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+
+        <ng-template pTemplate="emptymessage">
+          <tr>
+            <td colspan="7" class="empty-state">Nenhuma pessoa encontrada.</td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </p-card>
+
+    <p-dialog
+      header="Iniciar jornada em lote"
+      [(visible)]="modalJornadaVisivel"
+      [modal]="true"
+      [closable]="!processandoJornada"
+      [closeOnEscape]="!processandoJornada"
+      [dismissableMask]="!processandoJornada"
+      [draggable]="false"
+      [resizable]="false"
+      [style]="{ width: 'min(1100px, 96vw)' }"
+      styleClass="jornada-dialog"
+      (onHide)="aoFecharModalJornada()"
+    >
+      <div class="jornada-modal-content">
+        <p class="modal-support-text">
+          Selecione a filial, a jornada e as pessoas que serão incluídas.
+        </p>
+
+        <div class="form-grid jornada-main-fields">
+          <div class="field col-span-6">
+            <label for="jornadaSeqFilial">Filial <span class="required-marker">*</span></label>
+            <p-select
+              inputId="jornadaSeqFilial"
+              name="jornadaSeqFilial"
+              [options]="filiaisEditaveis"
+              optionLabel="ds_nome"
+              optionValue="seq_filial"
+              placeholder="Selecione a filial"
+              [filter]="true"
+              [loading]="carregandoFiliais"
+              [disabled]="processandoJornada"
+              [(ngModel)]="jornadaEmLote.seqFilial"
+              (onChange)="aoAlterarFilial($event.value)"
+            />
+          </div>
+
+          <div class="field col-span-6">
+            <label for="jornadaSeqTrajetoria">Jornada <span class="required-marker">*</span></label>
+            <p-select
+              inputId="jornadaSeqTrajetoria"
+              name="jornadaSeqTrajetoria"
+              [options]="jornadasDisponiveis"
+              optionLabel="ds_nome"
+              optionValue="seq_trajetoria"
+              placeholder="Selecione a jornada"
+              [filter]="true"
+              [loading]="carregandoJornadas"
+              [disabled]="!jornadaEmLote.seqFilial || carregandoJornadas || processandoJornada"
+              [(ngModel)]="jornadaEmLote.seqTrajetoria"
+              (onChange)="aoAlterarJornada($event.value)"
+            />
+          </div>
+        </div>
+
+        @if (erroFiliais) {
+          <p-message severity="error" [text]="erroFiliais" />
+        }
+
+        @if (erroJornadas) {
+          <p-message severity="error" [text]="erroJornadas" />
+        } @else if (
+          jornadaEmLote.seqFilial && !carregandoJornadas && jornadasDisponiveis.length === 0
+        ) {
+          <p-message severity="info" text="Não há jornadas disponíveis para esta filial." />
+        }
+
+        @if (jornadaEmLote.seqFilial && jornadaEmLote.seqTrajetoria) {
+          <div class="modal-section">
+            <div class="form-grid">
+              <div class="field col-span-6">
+                <label for="pesquisaNomeJornada">Nome</label>
+                <input
+                  id="pesquisaNomeJornada"
+                  pInputText
+                  type="search"
+                  name="pesquisaNomeJornada"
+                  placeholder="Pesquisar por nome"
+                  [disabled]="carregandoPessoasElegiveis || processandoJornada"
+                  [(ngModel)]="pesquisaNomeJornada"
+                />
+              </div>
+
+              <div class="field col-span-6">
+                <label for="pesquisaTelefoneJornada">Telefone</label>
+                <input
+                  id="pesquisaTelefoneJornada"
+                  pInputText
+                  appTelefoneMask
+                  type="tel"
+                  name="pesquisaTelefoneJornada"
+                  placeholder="Pesquisar por telefone"
+                  [disabled]="carregandoPessoasElegiveis || processandoJornada"
+                  [(ngModel)]="pesquisaTelefoneJornada"
+                />
+              </div>
+            </div>
+
+            @if (carregandoPessoasElegiveis) {
+              <div class="modal-state">
+                <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+                <span>Carregando pessoas disponíveis...</span>
+              </div>
+            } @else if (erroPessoasElegiveis) {
+              <p-message severity="error" [text]="erroPessoasElegiveis" />
+            } @else {
+              <p-table
+                [value]="pessoasElegiveisFiltradas"
+                [(selection)]="pessoasSelecionadas"
+                [rowSelectable]="pessoaElegivelSelecionavel"
+                dataKey="seq_pessoa"
+                [paginator]="pessoasElegiveisFiltradas.length > 10"
+                [rows]="10"
+                [rowsPerPageOptions]="[10, 20, 50]"
+                responsiveLayout="scroll"
+                styleClass="p-datatable-sm jornada-people-table"
+              >
+                <ng-template pTemplate="header">
+                  <tr>
+                    <th class="selection-cell">
+                      <p-tableHeaderCheckbox [disabled]="processandoJornada" />
+                    </th>
+                    <th>Nome</th>
+                    <th>Telefone</th>
+                    <th>Situação</th>
+                    <th>Filial atual</th>
+                    <th>Líder atual</th>
+                  </tr>
+                </ng-template>
+
+                <ng-template pTemplate="body" let-pessoa>
+                  <tr>
+                    <td class="selection-cell">
+                      <span [pTooltip]="podeEditarPessoaElegivel(pessoa) ? '' : tooltipSemEdicao()">
+                        <p-tableCheckbox
+                          [value]="pessoa"
+                          [disabled]="processandoJornada || !podeEditarPessoaElegivel(pessoa)"
+                        />
+                      </span>
+                    </td>
+                    <td>{{ pessoa.ds_nome }}</td>
+                    <td>{{ formatarTelefoneElegivel(pessoa) }}</td>
+                    <td><p-tag [value]="obterSituacaoPessoa(pessoa)" severity="secondary" /></td>
+                    <td>{{ obterNomeFilial(pessoa.seq_filial) }}</td>
+                    <td>
+                      @if (obterNomeLider(pessoa.seq_lider); as nomeLider) {
+                        {{ nomeLider }}
+                      } @else {
+                        <p-tag value="Sem líder" severity="warn" />
+                      }
+                    </td>
+                  </tr>
+                </ng-template>
+
+                <ng-template pTemplate="emptymessage">
+                  <tr>
+                    <td colspan="6" class="empty-state">
+                      @if (pessoasElegiveis.length) {
+                        Nenhuma pessoa encontrada para a pesquisa informada.
+                      } @else {
+                        Não há pessoas disponíveis para iniciar esta jornada na filial selecionada.
+                      }
+                    </td>
+                  </tr>
+                </ng-template>
+              </p-table>
+            }
+          </div>
+        }
+
+        <div class="form-grid modal-section">
+          <div class="field col-span-4">
+            <label for="jornadaDtInicio"
+              >Data de início <span class="required-marker">*</span></label
+            >
+            <input
+              id="jornadaDtInicio"
+              pInputText
+              type="date"
+              name="jornadaDtInicio"
+              required
+              [disabled]="processandoJornada"
+              [(ngModel)]="jornadaEmLote.dtInicio"
+            />
+          </div>
+
+          <div class="field col-span-8">
+            <label for="jornadaObservacao">Observação geral</label>
+            <textarea
+              id="jornadaObservacao"
+              pTextarea
+              name="jornadaObservacao"
+              rows="3"
+              [disabled]="processandoJornada"
+              [(ngModel)]="jornadaEmLote.dsObservacao"
+            ></textarea>
+          </div>
+        </div>
+
+        @if (erroSalvarJornada) {
+          <p-message severity="error" [text]="erroSalvarJornada" />
+        }
       </div>
-    </ng-template>
-  </p-dialog>
+
+      <ng-template pTemplate="footer">
+        <div class="jornada-dialog-footer">
+          <span class="selection-summary">{{ textoQuantidadeSelecionada }}</span>
+          <div class="footer-actions">
+            <p-button
+              label="Cancelar"
+              severity="secondary"
+              [outlined]="true"
+              [disabled]="processandoJornada"
+              (onClick)="cancelarModalJornada()"
+            />
+            <p-button
+              [label]="labelConfirmarJornada"
+              icon="pi pi-play"
+              [loading]="processandoJornada"
+              [disabled]="!podeConfirmarJornada"
+              (onClick)="confirmarInicioJornada()"
+            />
+          </div>
+        </div>
+      </ng-template>
+    </p-dialog>
+  }
 </section>

@@ -13,6 +13,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ButtonModule } from 'primeng/button';
 import { DrawerModule } from 'primeng/drawer';
 import { TagModule } from 'primeng/tag';
+import { TooltipModule } from 'primeng/tooltip';
 import { Subject, catchError, map, of, switchMap, tap } from 'rxjs';
 
 import { PessoaTrajetoriaEtapa } from '../../../../services/pessoa-trajetoria-etapa.service';
@@ -31,7 +32,7 @@ type AbaDrawer = 'resumo' | 'jornada' | 'historico' | 'lideranca';
 
 @Component({
   selector: 'app-detalhe-jornada-drawer',
-  imports: [CommonModule, ButtonModule, DrawerModule, TagModule],
+  imports: [CommonModule, ButtonModule, DrawerModule, TagModule, TooltipModule],
   templateUrl: './detalhe-jornada-drawer.html',
   styleUrl: './detalhe-jornada-drawer.scss',
 })
@@ -42,6 +43,7 @@ export class DetalheJornadaDrawer implements OnChanges {
 
   @Input() visivel = false;
   @Input() linha: JornadaLinha | null = null;
+  @Input() podeEditar = false;
 
   @Output() fechar = new EventEmitter<void>();
   @Output() solicitarEvolucao = new EventEmitter<JornadaLinha>();
@@ -99,7 +101,7 @@ export class DetalheJornadaDrawer implements OnChanges {
   }
 
   abrirEvolucao(): void {
-    if (this.linha && etapaParaEvolucao(this.linha)) {
+    if (this.podeEditar && this.linha && etapaParaEvolucao(this.linha)) {
       this.solicitarEvolucao.emit(this.linha);
     }
   }

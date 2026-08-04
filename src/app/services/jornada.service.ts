@@ -59,6 +59,7 @@ export interface JornadaLideranca {
   seq_lider: number | null;
   ds_nome: string | null;
   sem_lider: boolean;
+  st_lider_restrito: boolean;
 }
 
 export interface JornadaEtapa {

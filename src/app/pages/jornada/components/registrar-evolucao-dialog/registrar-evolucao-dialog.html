@@ -15,7 +15,13 @@
       @if (modoConsultaEvolucao) {
         <div class="consultation-note">
           <i class="pi pi-lock"></i>
-          <span>Jornada encerrada. Os dados estão disponíveis somente para consulta.</span>
+          <span>
+            @if (!podeEditar) {
+              Você possui permissão apenas para visualizar esta filial.
+            } @else {
+              Jornada encerrada. Os dados estão disponíveis somente para consulta.
+            }
+          </span>
         </div>
       }
 

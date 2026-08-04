@@ -6,10 +6,18 @@ import { MessageService } from 'primeng/api';
 
 import { Pessoas } from './pessoas';
 import { PessoaElegivelTrajetoria } from '../../services/pessoa-trajetoria.service';
+import { AuthService } from '../../services/auth.service';
+import { of } from 'rxjs';
+import { vi } from 'vitest';
 
 describe('Pessoas', () => {
   let component: Pessoas;
   let fixture: ComponentFixture<Pessoas>;
+  const authService = {
+    atualizarUsuario: vi.fn(() => of({})),
+    podeVisualizarFilial: vi.fn(() => true),
+    podeEditarFilial: vi.fn(() => true),
+  };
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -19,6 +27,7 @@ describe('Pessoas', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([]),
+        { provide: AuthService, useValue: authService },
       ],
     }).compileComponents();
 
@@ -60,6 +69,40 @@ describe('Pessoas', () => {
 
     component.processandoJornada = true;
     expect(component.podeConfirmarJornada).toBe(false);
+  });
+  it('mantém pessoa visível, mas impede seleção em lote sem permissão de edição', () => {
+    const pessoa = criarPessoaElegivel(1, 'Ana Souza', '61999990000');
+    authService.podeEditarFilial.mockReturnValue(false);
+
+    expect(component.pessoaElegivelSelecionavel({ data: pessoa })).toBe(false);
+    component.jornadaEmLote.seqFilial = 1;
+    component.jornadaEmLote.seqTrajetoria = 2;
+    component.pessoasSelecionadas = [pessoa];
+    expect(component.podeConfirmarJornada).toBe(false);
+
+    authService.podeEditarFilial.mockReturnValue(true);
+  });
+
+  it('separa filiais visualizáveis das filiais editáveis', () => {
+    component.filiais = [
+      {
+        seq_filial: 1,
+        ds_nome: 'Editável',
+        st_ativo: true,
+        st_visualiza: true,
+        st_edita: true,
+      },
+      {
+        seq_filial: 2,
+        ds_nome: 'Somente leitura',
+        st_ativo: true,
+        st_visualiza: true,
+        st_edita: false,
+      },
+    ];
+
+    expect(component.filiaisVisualizaveis).toHaveLength(2);
+    expect(component.filiaisEditaveis.map((filial) => filial.seq_filial)).toEqual([1]);
   });
 });
 

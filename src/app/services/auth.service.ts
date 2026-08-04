@@ -1,7 +1,7 @@
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Inject, Injectable, PLATFORM_ID } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { BehaviorSubject, Observable, finalize, shareReplay, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 export interface LoginRequest {
@@ -12,7 +12,15 @@ export interface LoginRequest {
 export interface UsuarioAutenticado {
   seq_usuario: number;
   ds_usuario: string;
-  ds_nome: string;
+  ds_nome: string | null;
+  st_ativo?: boolean;
+  filiais_gestao: FilialGestaoPermissao[];
+}
+
+export interface FilialGestaoPermissao {
+  seq_filial: number;
+  st_visualiza: boolean;
+  st_edita: boolean;
 }
 
 export interface LoginResponse {
@@ -27,15 +35,21 @@ export interface LoginResponse {
   providedIn: 'root',
 })
 export class AuthService {
-  private readonly apiUrl = `${environment.apiUrl}/auth/login`;
+  private readonly loginUrl = `${environment.apiUrl}/auth/login`;
+  private readonly usuarioUrl = `${environment.apiUrl}/auth/me`;
   private readonly tokenKey = 'renascer_access_token';
   private readonly usuarioKey = 'renascer_usuario';
   private readonly expiracaoKey = 'renascer_token_expires_at';
+  private readonly usuarioSubject = new BehaviorSubject<UsuarioAutenticado | null>(null);
+  private atualizacaoUsuarioEmCurso$: Observable<UsuarioAutenticado> | null = null;
+  readonly usuarioAtual$ = this.usuarioSubject.asObservable();
 
   constructor(
     private http: HttpClient,
     @Inject(PLATFORM_ID) private platformId: object,
-  ) {}
+  ) {
+    this.usuarioSubject.next(this.lerUsuarioArmazenado());
+  }
 
   login(credenciais: LoginRequest): Observable<LoginResponse> {
     const body = new HttpParams()
@@ -43,7 +57,7 @@ export class AuthService {
       .set('password', credenciais.ds_senha);
 
     return this.http
-      .post<LoginResponse>(this.apiUrl, body.toString(), {
+      .post<LoginResponse>(this.loginUrl, body.toString(), {
         headers: new HttpHeaders({
           'Content-Type': 'application/x-www-form-urlencoded',
         }),
@@ -59,6 +73,7 @@ export class AuthService {
     localStorage.removeItem(this.tokenKey);
     localStorage.removeItem(this.usuarioKey);
     localStorage.removeItem(this.expiracaoKey);
+    this.usuarioSubject.next(null);
   }
 
   getToken(): string | null {
@@ -70,22 +85,49 @@ export class AuthService {
   }
 
   getUsuario(): UsuarioAutenticado | null {
-    if (!this.isBrowser()) {
-      return null;
+    const usuario = this.lerUsuarioArmazenado();
+    if (JSON.stringify(usuario) !== JSON.stringify(this.usuarioSubject.value)) {
+      this.usuarioSubject.next(usuario);
+    }
+    return this.usuarioSubject.value;
+  }
+
+  atualizarUsuario(): Observable<UsuarioAutenticado> {
+    if (this.atualizacaoUsuarioEmCurso$) {
+      return this.atualizacaoUsuarioEmCurso$;
     }
 
-    const usuario = localStorage.getItem(this.usuarioKey);
+    const atualizacao$ = this.http.get<UsuarioAutenticado>(this.usuarioUrl).pipe(
+      tap((usuario) => this.salvarUsuario(usuario)),
+      finalize(() => (this.atualizacaoUsuarioEmCurso$ = null)),
+      shareReplay({ bufferSize: 1, refCount: false }),
+    );
+    this.atualizacaoUsuarioEmCurso$ = atualizacao$;
+    return atualizacao$;
+  }
 
-    if (!usuario) {
-      return null;
+  podeVisualizarFilial(seqFilial: number | null | undefined): boolean {
+    if (!seqFilial) {
+      return false;
     }
+    return this.filiaisVisualizaveis.some((filial) => filial.seq_filial === seqFilial);
+  }
 
-    try {
-      return JSON.parse(usuario) as UsuarioAutenticado;
-    } catch {
-      this.logout();
-      return null;
+  podeEditarFilial(seqFilial: number | null | undefined): boolean {
+    if (!seqFilial) {
+      return false;
     }
+    return this.filiaisEditaveis.some((filial) => filial.seq_filial === seqFilial);
+  }
+
+  get filiaisVisualizaveis(): FilialGestaoPermissao[] {
+    return (this.getUsuario()?.filiais_gestao ?? []).filter((filial) => filial.st_visualiza);
+  }
+
+  get filiaisEditaveis(): FilialGestaoPermissao[] {
+    return (this.getUsuario()?.filiais_gestao ?? []).filter(
+      (filial) => filial.st_visualiza && filial.st_edita,
+    );
   }
 
   estaAutenticado(): boolean {
@@ -111,8 +153,39 @@ export class AuthService {
     }
 
     localStorage.setItem(this.tokenKey, resposta.access_token);
-    localStorage.setItem(this.usuarioKey, JSON.stringify(resposta.usuario));
+    this.salvarUsuario(resposta.usuario);
     localStorage.setItem(this.expiracaoKey, resposta.expires_at);
+  }
+
+  private salvarUsuario(usuario: UsuarioAutenticado): void {
+    const normalizado = this.normalizarUsuario(usuario);
+    if (this.isBrowser()) {
+      localStorage.setItem(this.usuarioKey, JSON.stringify(normalizado));
+    }
+    this.usuarioSubject.next(normalizado);
+  }
+
+  private lerUsuarioArmazenado(): UsuarioAutenticado | null {
+    if (!this.isBrowser()) {
+      return null;
+    }
+    const usuario = localStorage.getItem(this.usuarioKey);
+    if (!usuario) {
+      return null;
+    }
+    try {
+      return this.normalizarUsuario(JSON.parse(usuario) as UsuarioAutenticado);
+    } catch {
+      this.logout();
+      return null;
+    }
+  }
+
+  private normalizarUsuario(usuario: UsuarioAutenticado): UsuarioAutenticado {
+    return {
+      ...usuario,
+      filiais_gestao: Array.isArray(usuario.filiais_gestao) ? usuario.filiais_gestao : [],
+    };
   }
 
   private obterExpiracao(token: string): number | null {

@@ -3,7 +3,8 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { Pessoa, PessoaFiltros, PessoaService } from '../../services/pessoa.service';
 import { Cidade, CidadeService } from '../../services/cidade.service';
-import { Filial, FilialService } from '../../services/filial.service';
+import { FilialGestao, FilialService } from '../../services/filial.service';
+import { AuthService } from '../../services/auth.service';
 import { FaixaEtaria, FaixaEtariaService } from '../../services/faixa-etaria.service';
 import { Vinculo, VinculoService } from '../../services/vinculo.service';
 import { Ministerio, MinisterioService } from '../../services/ministerio.service';
@@ -16,6 +17,7 @@ import { MultiSelectModule } from 'primeng/multiselect';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
+import { TooltipModule } from 'primeng/tooltip';
 import { TelefoneMaskDirective } from '../../shared/directives/telefone-mask.directive';
 import { MensagensApp } from '../../shared/constants/mensagens.constants';
 import { DialogModule } from 'primeng/dialog';
@@ -52,13 +54,14 @@ type FiltroValor = string | number | null;
     TableModule,
     TagModule,
     TextareaModule,
+    TooltipModule,
     TelefoneMaskDirective,
   ],
 })
 export class Pessoas implements OnInit {
   pessoas: Pessoa[] = [];
   cidades: Cidade[] = [];
-  filiais: Filial[] = [];
+  filiais: FilialGestao[] = [];
   faixasEtarias: FaixaEtaria[] = [];
   vinculos: Vinculo[] = [];
   ministerios: Ministerio[] = [];
@@ -76,6 +79,7 @@ export class Pessoas implements OnInit {
   erroJornadas = '';
   erroPessoasElegiveis = '';
   erroSalvarJornada = '';
+  erroPessoas = '';
   pesquisaNomeJornada = '';
   pesquisaTelefoneJornada = '';
   jornadaEmLote = this.criarFormularioJornada();
@@ -106,6 +110,7 @@ export class Pessoas implements OnInit {
 
   constructor(
     private pessoaService: PessoaService,
+    private authService: AuthService,
     private cidadeService: CidadeService,
     private filialService: FilialService,
     private faixaEtariaService: FaixaEtariaService,
@@ -117,8 +122,25 @@ export class Pessoas implements OnInit {
     private messageService: MessageService,
   ) {}
 
-  get filiaisAtivas(): Filial[] {
-    return this.filiais.filter((filial) => filial.st_ativo);
+  get filiaisVisualizaveis(): FilialGestao[] {
+    return this.filiais.filter(
+      (filial) => filial.st_visualiza && this.authService.podeVisualizarFilial(filial.seq_filial),
+    );
+  }
+
+  get filiaisEditaveis(): FilialGestao[] {
+    return this.filiaisVisualizaveis.filter(
+      (filial) =>
+        filial.st_ativo && filial.st_edita && this.authService.podeEditarFilial(filial.seq_filial),
+    );
+  }
+
+  get temFilialEditavel(): boolean {
+    return this.filiaisEditaveis.length > 0;
+  }
+
+  get semFiliaisVisualizaveis(): boolean {
+    return !this.carregandoFiliais && !this.erroFiliais && this.filiaisVisualizaveis.length === 0;
   }
 
   get pessoasElegiveisFiltradas(): PessoaElegivelTrajetoria[] {
@@ -155,11 +177,14 @@ export class Pessoas implements OnInit {
       this.jornadaEmLote.seqTrajetoria &&
       this.pessoasSelecionadas.length &&
       this.jornadaEmLote.dtInicio &&
+      this.authService.podeEditarFilial(this.jornadaEmLote.seqFilial) &&
+      this.pessoasSelecionadas.every((pessoa) => this.podeEditarPessoaElegivel(pessoa)) &&
       !this.processandoJornada
     );
   }
 
   ngOnInit(): void {
+    this.authService.atualizarUsuario().subscribe({ error: () => undefined });
     this.carregarPessoas();
     this.carregarCidades();
     this.carregarFiliais();
@@ -170,11 +195,17 @@ export class Pessoas implements OnInit {
   }
 
   carregarPessoas(): void {
+    this.erroPessoas = '';
     this.pessoaService.listar(this.montarFiltros()).subscribe({
       next: (dados) => {
         this.pessoas = dados;
       },
-      error: (erro) => {
+      error: (erro: HttpErrorResponse) => {
+        this.pessoas = [];
+        this.erroPessoas =
+          erro.status === 403
+            ? 'Você não possui permissão para visualizar pessoas nesta filial.'
+            : MensagensApp.Pessoas_Error_BUSCAR_PESSOAS;
         console.error(MensagensApp.Pessoas_Error_BUSCAR_PESSOAS, erro);
       },
     });
@@ -185,6 +216,9 @@ export class Pessoas implements OnInit {
   }
 
   formatarNomeLider(pessoa: Pessoa): string {
+    if (pessoa.st_lider_restrito) {
+      return 'Líder não disponível para visualização';
+    }
     const nome = pessoa.lider?.ds_nome?.trim();
 
     if (!nome) {
@@ -229,7 +263,7 @@ export class Pessoas implements OnInit {
   carregarFiliais(): void {
     this.carregandoFiliais = true;
     this.erroFiliais = '';
-    this.filialService.listar().subscribe({
+    this.filialService.listarGestao().subscribe({
       next: (dados) => {
         this.filiais = dados;
         this.carregandoFiliais = false;
@@ -243,6 +277,14 @@ export class Pessoas implements OnInit {
   }
 
   abrirModalJornada(): void {
+    if (!this.temFilialEditavel) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Ação indisponível',
+        detail: 'Você possui permissão apenas para visualizar as filiais disponíveis.',
+      });
+      return;
+    }
     this.limparModalJornada();
     this.modalJornadaVisivel = true;
   }
@@ -256,6 +298,12 @@ export class Pessoas implements OnInit {
     this.erroJornadas = '';
 
     if (!seqFilial) {
+      return;
+    }
+
+    if (!this.authService.podeEditarFilial(seqFilial)) {
+      this.erroJornadas = 'Você não possui permissão para iniciar jornadas nesta filial.';
+      this.jornadaEmLote.seqFilial = null;
       return;
     }
 
@@ -349,6 +397,15 @@ export class Pessoas implements OnInit {
       return;
     }
 
+    if (
+      !this.authService.podeEditarFilial(this.jornadaEmLote.seqFilial) ||
+      this.pessoasSelecionadas.some((pessoa) => !this.podeEditarPessoaElegivel(pessoa))
+    ) {
+      this.erroSalvarJornada =
+        'Você não possui permissão para realizar esta operação nesta filial.';
+      return;
+    }
+
     const quantidade = this.pessoasSelecionadas.length;
     this.processandoJornada = true;
     this.erroSalvarJornada = '';
@@ -414,6 +471,21 @@ export class Pessoas implements OnInit {
     }
 
     return this.lideres.find((lider) => lider.seq_pessoa === seqLider)?.ds_nome?.trim() || null;
+  }
+
+  podeEditarPessoa(pessoa: Pessoa): boolean {
+    return this.authService.podeEditarFilial(pessoa.seq_filial ?? pessoa.filial?.seq_filial);
+  }
+
+  podeEditarPessoaElegivel(pessoa: PessoaElegivelTrajetoria): boolean {
+    return this.authService.podeEditarFilial(pessoa.seq_filial);
+  }
+
+  readonly pessoaElegivelSelecionavel = ({ data }: { data: PessoaElegivelTrajetoria }) =>
+    this.podeEditarPessoaElegivel(data);
+
+  tooltipSemEdicao(): string {
+    return 'Você possui permissão apenas para visualizar esta filial.';
   }
 
   carregarFaixasEtarias(): void {
@@ -546,6 +618,9 @@ export class Pessoas implements OnInit {
   }
 
   private obterMensagemErro(erro: HttpErrorResponse): string {
+    if (erro.status === 403) {
+      return 'Você não possui permissão para realizar esta operação nesta filial.';
+    }
     const detalhe = erro.error?.detail;
     if (typeof detalhe === 'string' && detalhe.trim()) {
       return detalhe;

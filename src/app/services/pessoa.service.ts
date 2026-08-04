@@ -59,6 +59,7 @@ export interface Pessoa extends PessoaBase {
   faixa_etaria?: FaixaEtaria | null;
   lider?: PessoaLider | null;
   ministerios?: Ministerio[];
+  st_lider_restrito: boolean;
 }
 
 export interface PessoaFiltros {
@@ -86,7 +87,7 @@ type PessoaUpdateRequest = PessoaUpdate & {
 };
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class PessoaService {
   private apiUrl = `${environment.apiUrl}/pessoas/`;
@@ -95,7 +96,7 @@ export class PessoaService {
 
   listar(filtros: PessoaFiltros = {}): Observable<Pessoa[]> {
     return this.http.get<Pessoa[]>(this.apiUrl, {
-      params: this.montarParams(filtros)
+      params: this.montarParams(filtros),
     });
   }
 
@@ -110,7 +111,7 @@ export class PessoaService {
   criarVisitante(visitante: PessoaVisitanteCreate): Observable<Pessoa> {
     return this.http.post<Pessoa>(`${this.apiUrl}visitante`, {
       ...visitante,
-      nr_telefone: this.limparMascaraTelefone(visitante.nr_telefone)
+      nr_telefone: this.limparMascaraTelefone(visitante.nr_telefone),
     });
   }
 
@@ -119,9 +120,8 @@ export class PessoaService {
   }
 
   calcularIdade(pessoaOuData: Pessoa | string | null | undefined): number | null {
-    const dataNascimento = typeof pessoaOuData === 'string'
-      ? pessoaOuData
-      : pessoaOuData?.dt_nascimento;
+    const dataNascimento =
+      typeof pessoaOuData === 'string' ? pessoaOuData : pessoaOuData?.dt_nascimento;
 
     if (!dataNascimento) {
       return null;
@@ -147,9 +147,8 @@ export class PessoaService {
   }
 
   formatarTelefone(pessoaOuTelefone: Pessoa | PessoaLider | string | null | undefined): string {
-    const telefone = typeof pessoaOuTelefone === 'string'
-      ? pessoaOuTelefone
-      : pessoaOuTelefone?.nr_telefone;
+    const telefone =
+      typeof pessoaOuTelefone === 'string' ? pessoaOuTelefone : pessoaOuTelefone?.nr_telefone;
 
     if (!telefone) {
       return '';
@@ -170,11 +169,13 @@ export class PessoaService {
 
   private comUsuarioLogado(pessoa: PessoaCreate): PessoaCreateRequest;
   private comUsuarioLogado(pessoa: PessoaUpdate): PessoaUpdateRequest;
-  private comUsuarioLogado(pessoa: PessoaCreate | PessoaUpdate): PessoaCreateRequest | PessoaUpdateRequest {
+  private comUsuarioLogado(
+    pessoa: PessoaCreate | PessoaUpdate,
+  ): PessoaCreateRequest | PessoaUpdateRequest {
     return {
       ...pessoa,
       nr_telefone: this.limparMascaraTelefone(pessoa.nr_telefone),
-      id_usuario_logado: environment.id_usuario_logado
+      id_usuario_logado: environment.id_usuario_logado,
     };
   }
 
@@ -191,18 +192,24 @@ export class PessoaService {
     let params = new HttpParams();
 
     Object.entries(filtros).forEach(([chave, valor]) => {
-      if (chave === 'seq_ministerios' || chave === 'seq_lideres' || valor === null || valor === undefined || valor === '') {
+      if (
+        chave === 'seq_ministerios' ||
+        chave === 'seq_lideres' ||
+        valor === null ||
+        valor === undefined ||
+        valor === ''
+      ) {
         return;
       }
 
       params = params.set(chave, String(valor));
     });
 
-    filtros.seq_ministerios?.forEach(seqMinisterio => {
+    filtros.seq_ministerios?.forEach((seqMinisterio) => {
       params = params.append('seq_ministerios', String(seqMinisterio));
     });
 
-    filtros.seq_lideres?.forEach(seqLider => {
+    filtros.seq_lideres?.forEach((seqLider) => {
       params = params.append('seq_lideres', String(seqLider));
     });
 

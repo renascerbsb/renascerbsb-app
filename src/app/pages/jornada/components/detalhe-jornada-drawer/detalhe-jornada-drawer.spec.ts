@@ -58,6 +58,7 @@ describe('DetalheJornadaDrawer', () => {
     const fechar = vi.fn();
     const evolucao = vi.fn();
     component.linha = linha;
+    component.podeEditar = true;
     component.fechar.subscribe(fechar);
     component.solicitarEvolucao.subscribe(evolucao);
 
@@ -66,6 +67,17 @@ describe('DetalheJornadaDrawer', () => {
 
     expect(fechar).toHaveBeenCalledOnce();
     expect(evolucao).toHaveBeenCalledWith(linha);
+  });
+
+  it('mantém detalhes disponíveis sem emitir evolução em modo somente leitura', () => {
+    component.linha = criarLinha();
+    component.podeEditar = false;
+    const evolucao = vi.fn();
+    component.solicitarEvolucao.subscribe(evolucao);
+
+    component.abrirEvolucao();
+
+    expect(evolucao).not.toHaveBeenCalled();
   });
 });
 
@@ -106,7 +118,12 @@ function criarLinha(): JornadaLinha {
       st_cancelada: false,
       st_concluida: false,
     },
-    lideranca: { seq_lider: null, ds_nome: null, sem_lider: true },
+    lideranca: {
+      seq_lider: null,
+      ds_nome: null,
+      sem_lider: true,
+      st_lider_restrito: false,
+    },
     etapa_atual: etapa,
     proxima_acao: etapa,
     progresso: {

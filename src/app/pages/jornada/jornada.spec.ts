@@ -4,6 +4,7 @@ import { Subject, of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 
 import { FilialService } from '../../services/filial.service';
+import { AuthService } from '../../services/auth.service';
 import { JornadaPaginada, JornadaService } from '../../services/jornada.service';
 import { PessoaService } from '../../services/pessoa.service';
 import { TrajetoriaEtapaService } from '../../services/trajetoria-etapa.service';
@@ -23,6 +24,11 @@ describe('Jornada - integração agregada', () => {
     formatarTelefone: ReturnType<typeof vi.fn>;
   };
   let trajetoriaEtapaService: { buscarPorId: ReturnType<typeof vi.fn> };
+  let authService: {
+    atualizarUsuario: ReturnType<typeof vi.fn>;
+    podeVisualizarFilial: ReturnType<typeof vi.fn>;
+    podeEditarFilial: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
     jornadaService = {
@@ -45,12 +51,33 @@ describe('Jornada - integração agregada', () => {
     trajetoriaEtapaService = {
       buscarPorId: vi.fn(() => of(criarConfiguracaoEtapa())),
     };
+    authService = {
+      atualizarUsuario: vi.fn(() => of({})),
+      podeVisualizarFilial: vi.fn(() => true),
+      podeEditarFilial: vi.fn(() => true),
+    };
 
     await TestBed.configureTestingModule({
       imports: [Jornada],
       providers: [
         { provide: JornadaService, useValue: jornadaService },
-        { provide: FilialService, useValue: { listar: vi.fn(() => of([])) } },
+        {
+          provide: FilialService,
+          useValue: {
+            listarGestao: vi.fn(() =>
+              of([
+                {
+                  seq_filial: 1,
+                  ds_nome: 'Sede',
+                  st_ativo: true,
+                  st_visualiza: true,
+                  st_edita: true,
+                },
+              ]),
+            ),
+          },
+        },
+        { provide: AuthService, useValue: authService },
         { provide: PessoaService, useValue: pessoaService },
         { provide: TrajetoriaService, useValue: { listar: vi.fn(() => of([])) } },
         { provide: TrajetoriaEtapaService, useValue: trajetoriaEtapaService },
@@ -209,6 +236,42 @@ describe('Jornada - integração agregada', () => {
     expect(component.drawerVisivel).toBe(true);
     expect(pessoaService.listar).not.toHaveBeenCalled();
   });
+
+  it('mantém consulta disponível e bloqueia escrita em filial somente visualizável', () => {
+    authService.podeEditarFilial.mockReturnValue(false);
+    const linha = criarLinha();
+
+    component.abrirDetalhes(linha);
+    component.abrirModalEvolucao(linha);
+
+    expect(component.drawerVisivel).toBe(true);
+    expect(component.podeEditarLinha(linha)).toBe(false);
+    expect(component.linhaSelecionavel({ data: linha })).toBe(false);
+    expect(trajetoriaEtapaService.buscarPorId).not.toHaveBeenCalled();
+  });
+
+  it('diferencia liderança visível, ausente e restrita pelo contrato', () => {
+    const visivel = criarLinha();
+    visivel.lideranca = {
+      seq_lider: 9,
+      ds_nome: 'Líder Visível',
+      sem_lider: false,
+      st_lider_restrito: false,
+    };
+    const ausente = criarLinha();
+    const restrita = criarLinha();
+    restrita.lideranca = {
+      seq_lider: null,
+      ds_nome: null,
+      sem_lider: false,
+      st_lider_restrito: true,
+    };
+
+    expect(visivel.lideranca.ds_nome).toBe('Líder Visível');
+    expect(ausente.lideranca.sem_lider).toBe(true);
+    expect(restrita.lideranca.st_lider_restrito).toBe(true);
+    expect(restrita.lideranca.sem_lider).toBe(false);
+  });
 });
 
 function respostaPaginada(items: JornadaLinha[]): JornadaPaginada {
@@ -269,7 +332,12 @@ function criarLinha(
       st_cancelada: cancelada,
       st_concluida: concluida,
     },
-    lideranca: { seq_lider: null, ds_nome: null, sem_lider: true },
+    lideranca: {
+      seq_lider: null,
+      ds_nome: null,
+      sem_lider: true,
+      st_lider_restrito: false,
+    },
     etapa_atual: concluida || cancelada ? null : etapa,
     proxima_acao: concluida || cancelada ? null : etapa,
     progresso: {
