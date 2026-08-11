@@ -33,4 +33,24 @@ describe('DashboardService', () => {
     expect(requisicao.request.params.get('periodo_dias')).toBe('30');
     requisicao.flush(resposta);
   });
+
+  it('deve enviar seq_filial de forma repetível ao dashboard agregado', () => {
+    service.obterDashboard([1, 2]).subscribe();
+    const requisicao = httpTesting.expectOne(
+      (request) => request.url === `${environment.apiUrl}/dashboard`,
+    );
+    expect(requisicao.request.method).toBe('GET');
+    expect(requisicao.request.params.getAll('seq_filial')).toEqual(['1', '2']);
+    requisicao.flush({});
+  });
+
+  it('deve manter o endpoint operacional de Jornada separado', () => {
+    service.obterKpisJornada(3, 60).subscribe();
+    const requisicao = httpTesting.expectOne(
+      (request) => request.url === `${environment.apiUrl}/dashboard/jornada/kpis`,
+    );
+    expect(requisicao.request.params.get('seq_filial')).toBe('3');
+    expect(requisicao.request.params.get('periodo_dias')).toBe('60');
+    requisicao.flush({});
+  });
 });

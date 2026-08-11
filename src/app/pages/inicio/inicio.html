@@ -1,8 +1,433 @@
 <section class="app-page dashboard-page">
   <header class="page-header">
     <div>
-      <h1 class="page-title">Renascer</h1>
-      <p class="page-subtitle">Página Inicial</p>
+      <h1 class="page-title">Dashboard ministerial</h1>
+      <p class="page-subtitle">Pessoas, visitantes e acompanhamento da Jornada em um só lugar.</p>
     </div>
-    </header>
+  </header>
+  <section class="branch-filter" aria-labelledby="tituloFiltroFiliais">
+    <div>
+      <h2 id="tituloFiltroFiliais">Filiais</h2>
+      <p>Os indicadores consideram somente pessoas ativas nas filiais selecionadas.</p>
+    </div>
+    @if (carregandoFiliais) {
+      <span role="status">Carregando filiais...</span>
+    } @else if (erroFiliais) {
+      <div class="inline-error" role="alert">
+        <span>{{ erroFiliais }}</span
+        ><button
+          pButton
+          type="button"
+          label="Tentar novamente"
+          icon="pi pi-refresh"
+          (click)="tentarCarregarFiliais()"
+        ></button>
+      </div>
+    } @else if (filialUnica; as filial) {
+      <strong class="single-branch"><i class="pi pi-building"></i>{{ filial.ds_nome }}</strong>
+    } @else if (filiaisOpcoes.length) {
+      <div class="branch-control">
+        <label class="sr-only" for="filiaisDashboard">Selecionar filiais</label
+        ><p-multiselect
+          inputId="filiaisDashboard"
+          [options]="filiaisOpcoes"
+          optionLabel="ds_nome"
+          optionValue="seq_filial"
+          display="chip"
+          [filter]="true"
+          [showToggleAll]="true"
+          placeholder="Selecione as filiais"
+          [ngModel]="filiaisSelecionadas"
+          (ngModelChange)="aoAlterarFiliais($event)"
+        /><button
+          pButton
+          type="button"
+          label="Todas"
+          icon="pi pi-check-square"
+          severity="secondary"
+          [outlined]="true"
+          (click)="selecionarTodasFiliais()"
+        ></button>
+      </div>
+    } @else {
+      <p>Você não possui filiais disponíveis para visualização.</p>
+    }
+  </section>
+  @if (atualizandoDashboard) {
+    <span class="updating-status" role="status" aria-live="polite"
+      ><i class="pi pi-spin pi-spinner"></i> Atualizando dados</span
+    >
+  }
+  @if (carregandoDashboard && !dashboard) {
+    <div class="loading-grid" role="status" aria-label="Carregando indicadores">
+      @for (item of [1, 2, 3, 4, 5, 6]; track item) {
+        <span></span>
+      }
+    </div>
+  }
+  @if (erroDashboard) {
+    <div class="section-error" role="alert">
+      <div>
+        <i class="pi pi-cloud"></i
+        ><span><strong>Dados gerais indisponíveis.</strong>{{ erroDashboard }}</span>
+      </div>
+      <button
+        pButton
+        type="button"
+        label="Tentar novamente"
+        icon="pi pi-refresh"
+        (click)="tentarNovamente()"
+      ></button>
+    </div>
+  }
+  @if (dashboard; as dados) {
+    <section class="kpi-grid" aria-label="Indicadores gerais de pessoas ativas">
+      <article class="kpi-card mobile-order-7">
+        <span class="kpi-icon"><i class="pi pi-users"></i></span>
+        <div>
+          <span
+            >Pessoas ativas
+            <i
+              class="pi pi-info-circle"
+              tabindex="0"
+              pTooltip="Total de pessoas ativas nas filiais selecionadas."
+            ></i></span
+          ><strong>{{ dados.kpis.total_pessoas_ativas }}</strong
+          ><small>Nas filiais selecionadas</small>
+        </div>
+      </article>
+      <article class="kpi-card featured mobile-order-1">
+        <span class="kpi-icon"><i class="pi pi-user-plus"></i></span>
+        <div>
+          <span
+            >Visitantes no mês
+            <i
+              class="pi pi-info-circle"
+              tabindex="0"
+              pTooltip="Visitantes cadastrados no mês atual nas filiais selecionadas."
+            ></i></span
+          ><strong>{{ dados.kpis.visitantes_mes_atual }}</strong
+          ><small>Cadastrados neste mês</small>
+        </div>
+      </article>
+      <article class="kpi-card mobile-order-2">
+        <span class="kpi-icon"><i class="pi pi-directions"></i></span>
+        <div>
+          <span
+            >Visitantes do mês em jornada
+            <i
+              class="pi pi-info-circle"
+              tabindex="0"
+              pTooltip="Visitantes cadastrados no mês atual que ingressaram em alguma jornada."
+            ></i></span
+          ><strong>{{ dados.kpis.visitantes_mes_atual_em_jornada }}</strong
+          ><small>Ingressaram em alguma jornada</small>
+        </div>
+      </article>
+      <article class="kpi-card mobile-order-8">
+        <span class="kpi-icon"><i class="pi pi-chart-line"></i></span>
+        <div>
+          <span
+            >Conversão para jornada
+            <i
+              class="pi pi-info-circle"
+              tabindex="0"
+              pTooltip="Percentual dos visitantes cadastrados no mês atual que ingressaram em alguma jornada."
+            ></i></span
+          ><strong>{{
+            formatarPercentual(dados.kpis.percentual_visitantes_mes_atual_em_jornada)
+          }}</strong
+          ><small>Visitantes deste mês</small>
+        </div>
+      </article>
+      <article class="kpi-card mobile-order-6">
+        <span class="kpi-icon"><i class="pi pi-compass"></i></span>
+        <div>
+          <span
+            >Jornadas em andamento
+            <i
+              class="pi pi-info-circle"
+              tabindex="0"
+              pTooltip="Total atual de jornadas em andamento de pessoas ativas."
+            ></i></span
+          ><strong>{{ dados.kpis.jornadas_em_andamento }}</strong
+          ><small>Somente pessoas ativas</small>
+        </div>
+      </article>
+      <article class="kpi-card attention mobile-order-3">
+        <span class="kpi-icon"><i class="pi pi-user-minus"></i></span>
+        <div>
+          <span
+            >Pessoas ativas sem liderança
+            <i
+              class="pi pi-info-circle"
+              tabindex="0"
+              pTooltip="Pessoas ativas que não possuem liderança ativa cadastrada."
+            ></i></span
+          ><strong>{{ dados.kpis.pessoas_ativas_sem_lideranca }}</strong
+          ><small>Precisam de atenção</small>
+        </div>
+      </article>
+    </section>
+  }
+  <section class="dashboard-section journey-section mobile-order-5" aria-labelledby="tituloJornada">
+    <div class="section-heading">
+      <div>
+        <span class="section-kicker">Acompanhamento</span>
+        <h2 id="tituloJornada">Jornada</h2>
+        <p>Indicadores legados preservados com seus conceitos e período original.</p>
+      </div>
+      <a
+        pButton
+        routerLink="/jornada"
+        label="Abrir Jornada"
+        icon="pi pi-arrow-right"
+        iconPos="right"
+      ></a>
+    </div>
+    @if (filtroLegadoLimitado) {
+      <p class="compatibility-note">
+        <i class="pi pi-info-circle"></i>Os endpoints legados aceitam apenas uma filial. Nesta
+        seleção múltipla, os indicadores permanecem consolidados para todas as filiais permitidas.
+      </p>
+    }
+    @if (erroJornada || erroKpisJornada) {
+      <div class="compact-error" role="alert">
+        <span>{{ erroJornada || erroKpisJornada }}</span
+        ><button
+          pButton
+          type="button"
+          label="Tentar novamente"
+          icon="pi pi-refresh"
+          severity="secondary"
+          [text]="true"
+          (click)="tentarNovamente()"
+        ></button>
+      </div>
+    }
+    <div class="journey-grid">
+      <article>
+        <span>Novos visitantes</span
+        ><strong>{{ indicadoresJornada?.novos_visitantes ?? '—' }}</strong
+        ><small>Últimos {{ indicadoresJornada?.periodo_dias ?? 30 }} dias</small>
+      </article>
+      <article>
+        <span>Pessoas em jornada</span
+        ><strong>{{ indicadoresJornada?.pessoas_em_jornada ?? '—' }}</strong
+        ><small>Jornadas não terminadas</small>
+      </article>
+      <article>
+        <span>Jornadas concluídas</span
+        ><strong>{{ indicadoresJornada?.jornadas_concluidas ?? '—' }}</strong
+        ><small>No período selecionado</small>
+      </article>
+      <article class="danger">
+        <span>Pendências vencidas</span
+        ><strong>{{ indicadoresJornada?.pendencias_vencidas ?? '—' }}</strong
+        ><small>Precisam de atenção</small>
+      </article>
+      <article>
+        <span>Sem líder</span><strong>{{ kpisJornada?.sem_lider ?? '—' }}</strong
+        ><small>Pessoas vinculadas à Jornada</small>
+      </article>
+      <article>
+        <span>Em acompanhamento</span><strong>{{ kpisJornada?.em_acompanhamento ?? '—' }}</strong
+        ><small>Acompanhamento ativo</small>
+      </article>
+    </div>
+    <p class="active-note">
+      <i class="pi pi-check-circle"></i>Estes indicadores consideram somente pessoas ativas.
+    </p>
+  </section>
+  @if (dashboard; as dados) {
+    <div class="dashboard-grid mobile-order-9">
+      <p-card styleClass="dashboard-card wide-card">
+        <ng-template #title>Pessoas ativas por filial</ng-template
+        ><ng-template #subtitle>Quantidade e participação nas filiais selecionadas</ng-template>
+        @if (dados.pessoas_por_filial.length) {
+          <div class="chart-box tall">
+            <p-chart
+              type="bar"
+              [data]="graficoPessoasFilial"
+              [options]="opcoesBarrasHorizontais"
+              aria-label="Gráfico de pessoas ativas por filial"
+            />
+          </div>
+          <ul class="chart-data-list" aria-label="Dados de pessoas por filial">
+            @for (item of dados.pessoas_por_filial; track item.seq_filial) {
+              <li>
+                <span [title]="item.ds_nome">{{ item.ds_nome }}</span
+                ><strong>{{ item.quantidade }} · {{ formatarPercentual(item.percentual) }}</strong>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="empty-state">Nenhuma pessoa ativa nas filiais selecionadas.</p>
+        }
+      </p-card>
+      <p-card styleClass="dashboard-card wide-card evolution-card">
+        <ng-template #title>Evolução de visitantes</ng-template
+        ><ng-template #subtitle>Últimos seis meses informados pelo backend</ng-template>
+        @if (dados.evolucao_visitantes.length) {
+          <div class="chart-box">
+            <p-chart
+              type="line"
+              [data]="graficoEvolucao"
+              [options]="opcoesComuns"
+              aria-label="Gráfico da evolução de visitantes"
+            />
+          </div>
+          <p class="chart-explanation">
+            A segunda série mostra, entre os visitantes cadastrados em cada mês, quantos ingressaram
+            em uma jornada — não todas as entradas em jornada do mês.
+          </p>
+        } @else {
+          <p class="empty-state">Não há histórico de visitantes disponível.</p>
+        }
+      </p-card>
+    </div>
+  }
+  @if (dashboard; as dados) {
+    <p-card class="mobile-order-4" styleClass="dashboard-card birthdays-card">
+      <ng-template #title>Próximos aniversários</ng-template
+      ><ng-template #subtitle>Datas das pessoas ativas nas filiais selecionadas</ng-template>
+      <div class="birthday-groups">
+        @for (grupo of gruposAniversarios; track grupo.titulo) {
+          <section>
+            <h3>{{ grupo.titulo }}</h3>
+            @if (grupo.pessoas.length) {
+              <div class="birthday-list">
+                @for (pessoa of grupo.pessoas; track pessoa.seq_pessoa) {
+                  <article class="birthday-person">
+                    <span class="avatar" aria-hidden="true">{{ iniciais(pessoa.ds_nome) }}</span>
+                    <div class="person-main">
+                      <strong>{{ pessoa.ds_nome }}</strong
+                      ><span
+                        >{{ dataAniversario(pessoa) }} ·
+                        {{ pessoa.idade_que_completara }} anos</span
+                      >
+                    </div>
+                    <div class="person-meta">
+                      <span><i class="pi pi-building"></i>{{ pessoa.ds_nome_filial }}</span
+                      ><span
+                        ><i class="pi pi-phone"></i>{{ formatarTelefone(pessoa.nr_telefone) }}</span
+                      >
+                    </div>
+                  </article>
+                }
+              </div>
+            } @else {
+              <p class="empty-state">{{ grupo.vazio }}</p>
+            }
+          </section>
+        }
+      </div>
+      <p class="missing-data">
+        <i class="pi pi-calendar-times"></i>{{ dados.aniversariantes.sem_data_nascimento }} pessoas
+        ativas sem data de nascimento.
+      </p>
+    </p-card>
+  }
+  @if (dashboard; as dados) {
+    <div class="dashboard-grid distributions-grid mobile-order-9">
+      <p-card styleClass="dashboard-card"
+        ><ng-template #title>Distribuição por gênero</ng-template
+        ><ng-template #subtitle>Valores informados no cadastro</ng-template>
+        @if (dados.distribuicao_genero.length) {
+          <div class="chart-box compact">
+            <p-chart
+              type="doughnut"
+              [data]="graficoGenero"
+              [options]="opcoesComuns"
+              aria-label="Gráfico da distribuição por gênero"
+            />
+          </div>
+        } @else {
+          <p class="empty-state">Não há dados de gênero disponíveis.</p>
+        }
+      </p-card>
+      <p-card styleClass="dashboard-card"
+        ><ng-template #title>Distribuição por faixa etária</ng-template
+        ><ng-template #subtitle>Faixas associadas ao cadastro, sem cálculo de idade</ng-template>
+        @if (dados.distribuicao_faixa_etaria.length) {
+          <div class="chart-box compact">
+            <p-chart
+              type="bar"
+              [data]="graficoFaixaEtaria"
+              [options]="opcoesFaixaEtaria"
+              aria-label="Gráfico da distribuição por faixa etária"
+            />
+          </div>
+          <ul class="chart-data-list compact-list" aria-label="Dados por faixa etária">
+            @for (faixa of dados.distribuicao_faixa_etaria; track faixa.ordem) {
+              <li>
+                <span
+                  >{{ faixa.descricao }} <small>{{ descreverLimitesFaixa(faixa) }}</small></span
+                ><strong
+                  >{{ faixa.quantidade }} · {{ formatarPercentual(faixa.percentual) }}</strong
+                >
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="empty-state">Não há faixas etárias disponíveis.</p>
+        }
+      </p-card>
+      @if (dados.distribuicao_bairro.length) {
+        <p-card styleClass="dashboard-card wide-card"
+          ><ng-template #title>Distribuição por bairro</ng-template>
+          <div class="chart-box">
+            <p-chart
+              type="bar"
+              [data]="graficoBairro"
+              [options]="opcoesBarrasHorizontais"
+              aria-label="Gráfico da distribuição por bairro"
+            /></div
+        ></p-card>
+      } @else if (bairroIndisponivel) {
+        <div class="neighborhood-unavailable wide-card">
+          <i class="pi pi-map-marker"></i>
+          <div>
+            <strong>Distribuição por bairro indisponível</strong
+            ><span>O cadastro atual não possui essa informação.</span>
+          </div>
+        </div>
+      } @else {
+        <p class="empty-state wide-card">Não há dados de bairro para as filiais selecionadas.</p>
+      }
+    </div>
+  }
+  @if (dashboard; as dados) {
+    <p-card class="mobile-order-10" styleClass="dashboard-card quality-card">
+      <ng-template #title>Qualidade do cadastro</ng-template
+      ><ng-template #subtitle>Pendências de informação entre pessoas ativas</ng-template>
+      <div class="quality-grid">
+        <article>
+          <i class="pi pi-calendar"></i><span>Sem data de nascimento</span
+          ><strong>{{ dados.qualidade_cadastral.sem_data_nascimento }}</strong>
+        </article>
+        <article>
+          <i class="pi pi-user"></i><span>Sem gênero informado</span
+          ><strong>{{ dados.qualidade_cadastral.sem_genero }}</strong>
+        </article>
+        <article>
+          <i class="pi pi-phone"></i><span>Sem telefone</span
+          ><strong>{{ dados.qualidade_cadastral.sem_telefone }}</strong>
+        </article>
+        <article>
+          <i class="pi pi-sitemap"></i><span>Sem liderança</span
+          ><strong>{{ dados.qualidade_cadastral.sem_lideranca }}</strong>
+        </article>
+        @if (dados.qualidade_cadastral.sem_bairro !== null) {
+          <article>
+            <i class="pi pi-map-marker"></i><span>Sem bairro</span
+            ><strong>{{ dados.qualidade_cadastral.sem_bairro }}</strong>
+          </article>
+        }
+      </div>
+      @if (dados.qualidade_cadastral.sem_bairro === null) {
+        <p class="unavailable-copy">Bairro: informação indisponível no modelo atual.</p>
+      }
+    </p-card>
+  }
 </section>
