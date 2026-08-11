@@ -1,10 +1,10 @@
 <p-toast />
 <p-confirmdialog />
 
-@if (!isLoginPage) {
+@if (exibirLayoutAutenticado) {
   <app-navbar></app-navbar>
 }
 
-<main [class.app-main]="!isLoginPage">
+<main [class.app-main]="exibirLayoutAutenticado">
   <router-outlet></router-outlet>
 </main>

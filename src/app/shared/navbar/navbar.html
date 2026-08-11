@@ -1,22 +1,62 @@
-<nav class="app-navbar">
-  <a class="brand" routerLink="/inicio">Renascer</a>
+<header class="mobile-header">
+  <a class="brand" routerLink="/inicio" (click)="fecharMenuMobile()">Renascer</a>
+  <button
+    type="button"
+    class="menu-toggle"
+    aria-label="Abrir menu"
+    aria-controls="menu-principal"
+    [attr.aria-expanded]="menuMobileAberto"
+    (click)="toggleMenuMobile()"
+  >
+    <i class="pi pi-bars" aria-hidden="true"></i>
+  </button>
+</header>
 
-  <div class="nav-links">
-    <a routerLink="/inicio" routerLinkActive="active">Início</a>
-    <a routerLink="/eventos" routerLinkActive="active">Eventos</a>
-    <a routerLink="/visitantes" routerLinkActive="active">Visitantes</a>
-    <a routerLink="/jornada" routerLinkActive="active">Jornada</a>
-    <a routerLink="/trajetorias" routerLinkActive="active">Trajetórias</a>
-    <a routerLink="/pessoas" routerLinkActive="active">Pessoas</a>
+<button
+  type="button"
+  class="menu-backdrop"
+  [class.visible]="menuMobileAberto"
+  [attr.aria-hidden]="!menuMobileAberto"
+  aria-label="Fechar menu"
+  (click)="fecharMenuMobile()"
+></button>
+
+<nav id="menu-principal" class="app-sidebar" [class.mobile-open]="menuMobileAberto">
+  <div class="sidebar-header">
+    <a class="brand" routerLink="/inicio" (click)="fecharMenuMobile()">Renascer</a>
+    <button type="button" class="menu-close" aria-label="Fechar menu" (click)="fecharMenuMobile()">
+      <i class="pi pi-times" aria-hidden="true"></i>
+    </button>
   </div>
 
-  <p-button
-    type="button"
-    [rounded]="true"
-    [text]="true"
-    severity="contrast"
-    [icon]="isLight ? 'pi pi-sun' : 'pi pi-moon'"
-    (onClick)="toggleTheme()"
-    ariaLabel="Alternar tema"
-  />
+  <div class="nav-links">
+    <a routerLink="/inicio" routerLinkActive="active" (click)="fecharMenuMobile()">Início</a>
+    <a routerLink="/eventos" routerLinkActive="active" (click)="fecharMenuMobile()">Eventos</a>
+    <a routerLink="/visitantes" routerLinkActive="active" (click)="fecharMenuMobile()"
+      >Visitantes</a
+    >
+    <a routerLink="/jornada" routerLinkActive="active" (click)="fecharMenuMobile()">Jornada</a>
+    <a routerLink="/trajetorias" routerLinkActive="active" (click)="fecharMenuMobile()"
+      >Trajetórias</a
+    >
+    <a routerLink="/pessoas" routerLinkActive="active" (click)="fecharMenuMobile()">Pessoas</a>
+  </div>
+
+  <div class="sidebar-footer">
+    <p-button
+      type="button"
+      styleClass="theme-button"
+      [text]="true"
+      severity="contrast"
+      [icon]="isLight ? 'pi pi-sun' : 'pi pi-moon'"
+      [label]="isLight ? 'Tema claro' : 'Tema escuro'"
+      (onClick)="toggleTheme()"
+      ariaLabel="Alternar tema"
+    />
+
+    <button type="button" class="logout-button" (click)="confirmarLogout()">
+      <i class="pi pi-sign-out" aria-hidden="true"></i>
+      <span>Sair</span>
+    </button>
+  </div>
 </nav>

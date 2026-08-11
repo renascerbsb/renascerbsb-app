@@ -1,8 +1,29 @@
 import { isPlatformBrowser } from '@angular/common';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import {
+  HttpClient,
+  HttpContext,
+  HttpErrorResponse,
+  HttpHeaders,
+  HttpParams,
+} from '@angular/common/http';
 import { Inject, Injectable, PLATFORM_ID } from '@angular/core';
-import { BehaviorSubject, Observable, finalize, shareReplay, tap } from 'rxjs';
+import {
+  BehaviorSubject,
+  Observable,
+  Subject,
+  catchError,
+  finalize,
+  map,
+  of,
+  shareReplay,
+  takeUntil,
+  tap,
+} from 'rxjs';
 import { environment } from '../../environments/environment';
+import {
+  IGNORAR_REDIRECIONAMENTO_401,
+  IGNORAR_TRATAMENTO_GLOBAL_DE_ERRO,
+} from '../core/http/http-context.tokens';
 
 export interface LoginRequest {
   ds_usuario: string;
@@ -31,6 +52,8 @@ export interface LoginResponse {
   usuario: UsuarioAutenticado;
 }
 
+export type EstadoValidacaoSessao = 'autenticada' | 'nao-autenticada' | 'indisponivel';
+
 @Injectable({
   providedIn: 'root',
 })
@@ -41,14 +64,21 @@ export class AuthService {
   private readonly usuarioKey = 'renascer_usuario';
   private readonly expiracaoKey = 'renascer_token_expires_at';
   private readonly usuarioSubject = new BehaviorSubject<UsuarioAutenticado | null>(null);
+  private readonly sessaoEncerradaSubject = new Subject<void>();
   private atualizacaoUsuarioEmCurso$: Observable<UsuarioAutenticado> | null = null;
+  private validacaoSessaoEmCurso$: Observable<EstadoValidacaoSessao> | null = null;
+  private tokenConfirmado: string | null = null;
+  private ultimaFalhaTemporariaEm = 0;
+  private readonly intervaloNovaTentativaMs = 5_000;
   readonly usuarioAtual$ = this.usuarioSubject.asObservable();
 
   constructor(
     private http: HttpClient,
     @Inject(PLATFORM_ID) private platformId: object,
   ) {
-    this.usuarioSubject.next(this.lerUsuarioArmazenado());
+    if (this.temSessaoLocalValida()) {
+      this.usuarioSubject.next(this.lerUsuarioArmazenado());
+    }
   }
 
   login(credenciais: LoginRequest): Observable<LoginResponse> {
@@ -66,13 +96,17 @@ export class AuthService {
   }
 
   logout(): void {
-    if (!this.isBrowser()) {
-      return;
+    if (this.isBrowser()) {
+      localStorage.removeItem(this.tokenKey);
+      localStorage.removeItem(this.usuarioKey);
+      localStorage.removeItem(this.expiracaoKey);
     }
 
-    localStorage.removeItem(this.tokenKey);
-    localStorage.removeItem(this.usuarioKey);
-    localStorage.removeItem(this.expiracaoKey);
+    this.sessaoEncerradaSubject.next();
+    this.atualizacaoUsuarioEmCurso$ = null;
+    this.validacaoSessaoEmCurso$ = null;
+    this.tokenConfirmado = null;
+    this.ultimaFalhaTemporariaEm = 0;
     this.usuarioSubject.next(null);
   }
 
@@ -81,10 +115,30 @@ export class AuthService {
       return null;
     }
 
-    return localStorage.getItem(this.tokenKey);
+    const token = localStorage.getItem(this.tokenKey);
+    if (!token) {
+      if (
+        localStorage.getItem(this.usuarioKey) !== null ||
+        localStorage.getItem(this.expiracaoKey) !== null
+      ) {
+        this.logout();
+      }
+      return null;
+    }
+
+    if (!this.tokenLocalValido(token)) {
+      this.logout();
+      return null;
+    }
+
+    return token;
   }
 
   getUsuario(): UsuarioAutenticado | null {
+    if (!this.temSessaoLocalValida()) {
+      return null;
+    }
+
     const usuario = this.lerUsuarioArmazenado();
     if (JSON.stringify(usuario) !== JSON.stringify(this.usuarioSubject.value)) {
       this.usuarioSubject.next(usuario);
@@ -98,12 +152,64 @@ export class AuthService {
     }
 
     const atualizacao$ = this.http.get<UsuarioAutenticado>(this.usuarioUrl).pipe(
+      takeUntil(this.sessaoEncerradaSubject),
       tap((usuario) => this.salvarUsuario(usuario)),
       finalize(() => (this.atualizacaoUsuarioEmCurso$ = null)),
       shareReplay({ bufferSize: 1, refCount: false }),
     );
     this.atualizacaoUsuarioEmCurso$ = atualizacao$;
     return atualizacao$;
+  }
+
+  temSessaoLocalValida(): boolean {
+    return this.getToken() !== null;
+  }
+
+  validarSessao(): Observable<EstadoValidacaoSessao> {
+    const token = this.getToken();
+    if (!token) {
+      return of('nao-autenticada');
+    }
+
+    if (this.tokenConfirmado === token) {
+      return of('autenticada');
+    }
+
+    if (this.validacaoSessaoEmCurso$) {
+      return this.validacaoSessaoEmCurso$;
+    }
+
+    if (Date.now() - this.ultimaFalhaTemporariaEm < this.intervaloNovaTentativaMs) {
+      return of('indisponivel');
+    }
+
+    const context = new HttpContext()
+      .set(IGNORAR_REDIRECIONAMENTO_401, true)
+      .set(IGNORAR_TRATAMENTO_GLOBAL_DE_ERRO, true);
+
+    const validacao$ = this.http.get<UsuarioAutenticado>(this.usuarioUrl, { context }).pipe(
+      takeUntil(this.sessaoEncerradaSubject),
+      tap((usuario) => {
+        this.salvarUsuario(usuario);
+        this.tokenConfirmado = token;
+        this.ultimaFalhaTemporariaEm = 0;
+      }),
+      map((): EstadoValidacaoSessao => 'autenticada'),
+      catchError((erro: HttpErrorResponse) => {
+        if (erro.status === 401) {
+          this.logout();
+          return of<EstadoValidacaoSessao>('nao-autenticada');
+        }
+
+        this.ultimaFalhaTemporariaEm = Date.now();
+        return of<EstadoValidacaoSessao>('indisponivel');
+      }),
+      finalize(() => (this.validacaoSessaoEmCurso$ = null)),
+      shareReplay({ bufferSize: 1, refCount: false }),
+    );
+
+    this.validacaoSessaoEmCurso$ = validacao$;
+    return validacao$;
   }
 
   podeVisualizarFilial(seqFilial: number | null | undefined): boolean {
@@ -132,19 +238,7 @@ export class AuthService {
 
   estaAutenticado(): boolean {
     const token = this.getToken();
-
-    if (!token) {
-      return false;
-    }
-
-    const expiracao = this.obterExpiracao(token);
-
-    if (expiracao !== null && expiracao <= Date.now()) {
-      this.logout();
-      return false;
-    }
-
-    return true;
+    return token !== null && this.tokenConfirmado === token;
   }
 
   private salvarSessao(resposta: LoginResponse): void {
@@ -155,6 +249,8 @@ export class AuthService {
     localStorage.setItem(this.tokenKey, resposta.access_token);
     this.salvarUsuario(resposta.usuario);
     localStorage.setItem(this.expiracaoKey, resposta.expires_at);
+    this.tokenConfirmado = resposta.access_token;
+    this.ultimaFalhaTemporariaEm = 0;
   }
 
   private salvarUsuario(usuario: UsuarioAutenticado): void {
@@ -188,19 +284,27 @@ export class AuthService {
     };
   }
 
-  private obterExpiracao(token: string): number | null {
-    const expiracaoSalva = localStorage.getItem(this.expiracaoKey);
-    const expiracaoEmMs = expiracaoSalva ? Date.parse(expiracaoSalva) : NaN;
-
-    if (!Number.isNaN(expiracaoEmMs)) {
-      return expiracaoEmMs;
-    }
-
+  private tokenLocalValido(token: string): boolean {
     try {
-      const payload = JSON.parse(atob(token.split('.')[1])) as { exp?: number };
-      return payload.exp ? payload.exp * 1000 : null;
+      const partes = token.split('.');
+      if (partes.length !== 3 || partes.some((parte) => !parte)) {
+        return false;
+      }
+
+      const payloadBase64 = partes[1].replace(/-/g, '+').replace(/_/g, '/');
+      const payloadComPadding = payloadBase64.padEnd(
+        payloadBase64.length + ((4 - (payloadBase64.length % 4)) % 4),
+        '=',
+      );
+      const payload = JSON.parse(atob(payloadComPadding)) as { exp?: unknown };
+
+      return (
+        typeof payload.exp === 'number' &&
+        Number.isFinite(payload.exp) &&
+        payload.exp * 1000 > Date.now()
+      );
     } catch {
-      return null;
+      return false;
     }
   }
 

@@ -1,11 +1,21 @@
-.app-navbar {
-  min-height: 64px;
-  padding: 0 24px;
+.app-sidebar {
+  box-sizing: border-box;
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 1000;
+  width: 240px;
+  padding: 24px 16px 16px;
   display: flex;
-  align-items: center;
-  gap: 24px;
+  flex-direction: column;
   background: var(--brand-primary);
   color: #ffffff;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px 24px;
 }
 
 .brand {
@@ -17,16 +27,15 @@
 
 .nav-links {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 4px;
-  margin-left: auto;
 }
 
 .nav-links a {
   color: rgba(255, 255, 255, 0.82);
   text-decoration: none;
   font-weight: 600;
-  padding: 0.55rem 0.75rem;
+  padding: 0.65rem 0.75rem;
   border-radius: 8px;
 }
 
@@ -36,17 +45,106 @@
   background: rgba(255, 255, 255, 0.14);
 }
 
-@media (max-width: 640px) {
-  .app-navbar {
-    flex-wrap: wrap;
-    padding: 12px 16px;
-    gap: 10px;
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.24);
+}
+
+:host ::ng-deep .theme-button.p-button {
+  width: 100%;
+  justify-content: flex-start;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.logout-button {
+  width: 100%;
+  padding: 0.7rem 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.logout-button:hover,
+.logout-button:focus-visible {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.mobile-header,
+.menu-backdrop,
+.menu-close {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-header {
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: 999;
+    height: 64px;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--brand-primary);
+    color: #ffffff;
   }
 
-  .nav-links {
-    order: 3;
-    width: 100%;
-    overflow-x: auto;
-    margin-left: 0;
+  .menu-toggle,
+  .menu-close {
+    width: 42px;
+    height: 42px;
+    display: inline-grid;
+    place-items: center;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: #ffffff;
+    font-size: 1.15rem;
+    cursor: pointer;
+  }
+
+  .menu-toggle:hover,
+  .menu-close:hover {
+    background: rgba(255, 255, 255, 0.14);
+  }
+
+  .app-sidebar {
+    width: min(280px, 86vw);
+    transform: translateX(-100%);
+    box-shadow: 12px 0 30px rgba(15, 23, 42, 0.25);
+    transition: transform 180ms ease;
+  }
+
+  .app-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .menu-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    display: block;
+    border: 0;
+    background: rgba(15, 23, 42, 0.52);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms ease;
+  }
+
+  .menu-backdrop.visible {
+    opacity: 1;
+    pointer-events: auto;
   }
 }
