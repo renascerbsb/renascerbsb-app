@@ -13,6 +13,21 @@
           <span>Informe seu usuário e senha para continuar.</span>
         </div>
 
+        @if (estadoAquecimento !== 'pronta') {
+          <div class="warmup-status" role="status" aria-live="polite">
+            @if (estadoAquecimento === 'aquecendo') {
+              <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+              <span>Iniciando o sistema. O primeiro acesso pode levar alguns instantes.</span>
+            } @else {
+              <i class="pi pi-clock" aria-hidden="true"></i>
+              <span
+                >O sistema está demorando mais que o esperado para iniciar. Você já pode tentar
+                entrar.</span
+              >
+            }
+          </div>
+        }
+
         <div class="field">
           <label for="ds_usuario">Usuário</label>
           <input

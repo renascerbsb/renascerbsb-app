@@ -1,4 +1,5 @@
-import { Component, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
@@ -7,6 +8,7 @@ import { CardModule } from 'primeng/card';
 import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
 import { AuthService } from '../../services/auth.service';
+import { ApiWarmupService, EstadoAquecimentoApi } from '../../services/api-warmup.service';
 
 @Component({
   selector: 'app-login',
@@ -14,19 +16,29 @@ import { AuthService } from '../../services/auth.service';
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })
-export class Login {
+export class Login implements OnInit {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private messageService = inject(MessageService);
+  private apiWarmupService = inject(ApiWarmupService);
+  private destroyRef = inject(DestroyRef);
 
   carregando = false;
+  estadoAquecimento: EstadoAquecimentoApi = 'aquecendo';
 
   form = this.fb.group({
     ds_usuario: ['', Validators.required],
     ds_senha: ['', Validators.required],
   });
+
+  ngOnInit(): void {
+    this.apiWarmupService
+      .aquecer()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((estado) => (this.estadoAquecimento = estado));
+  }
 
   acessar(): void {
     if (this.form.invalid) {

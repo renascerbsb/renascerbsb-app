@@ -3,28 +3,31 @@ import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
+import { IGNORAR_AUTENTICACAO } from '../http/http-context.tokens';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const router = inject(Router);
+  const ignorarAutenticacao = req.context.get(IGNORAR_AUTENTICACAO);
   const token = authService.getToken();
-  const requisicao = token
-    ? req.clone({
-        setHeaders: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-    : req;
+  const requisicao =
+    token && !ignorarAutenticacao
+      ? req.clone({
+          setHeaders: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+      : req;
 
   return next(requisicao).pipe(
     catchError((erro: HttpErrorResponse) => {
-      if (erro.status === 401 && !req.url.endsWith('/auth/login')) {
+      if (erro.status === 401 && !ignorarAutenticacao && !req.url.endsWith('/auth/login')) {
         const returnUrl = router.url.startsWith('/login') ? '/inicio' : router.url;
         authService.logout();
         void router.navigate(['/login'], { queryParams: { returnUrl } });
       }
 
-      if (erro.status === 403 && !req.url.endsWith('/auth/me')) {
+      if (erro.status === 403 && !ignorarAutenticacao && !req.url.endsWith('/auth/me')) {
         authService.atualizarUsuario().subscribe({ error: () => undefined });
       }
 

@@ -3,9 +3,14 @@ import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { MessageService } from 'primeng/api';
 import { catchError, throwError } from 'rxjs';
 import { MensagensApp } from '../../shared/constants/mensagens.constants';
+import { IGNORAR_TRATAMENTO_GLOBAL_DE_ERRO } from '../http/http-context.tokens';
 
 export const apiErrorInterceptor: HttpInterceptorFn = (req, next) => {
   const messageService = inject(MessageService);
+
+  if (req.context.get(IGNORAR_TRATAMENTO_GLOBAL_DE_ERRO)) {
+    return next(req);
+  }
 
   return next(req).pipe(
     catchError((erro: HttpErrorResponse) => {
